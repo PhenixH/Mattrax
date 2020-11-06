@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/alexflint/go-arg v1.3.0
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
