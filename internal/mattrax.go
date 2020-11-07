@@ -33,6 +33,7 @@ type Arguments struct {
 	Addr    string `default:":443" placeholder:"\":443\"" help:"The listen address of the https server"`
 	TLSCert string `default:"./certs/tls.crt" placeholder:"\"./certs/tls.crt\"" help:"The path for the tls certificate"`
 	TLSKey  string `default:"./certs/tls.key" placeholder:"\"./certs/tls.key\"" help:"The path for the tls certificates key"`
+	Zipkin  string `default:"" placeholder:"\"http://localhost:9411/api/v2/spans\"" help:"The url of the Zipkin server. This feature is optional"`
 
 	Debug bool `help:"Enabled development mode. PLEASE DO NOT USE IN PRODUCTION!"`
 }

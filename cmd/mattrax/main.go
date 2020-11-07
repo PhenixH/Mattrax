@@ -16,6 +16,10 @@ import (
 	"github.com/mattrax/Mattrax/internal/middleware"
 	"github.com/mattrax/Mattrax/internal/settings"
 	"github.com/mattrax/Mattrax/mdm"
+	"github.com/openzipkin/zipkin-go"
+	zipkinhttp "github.com/openzipkin/zipkin-go/middleware/http"
+	"github.com/openzipkin/zipkin-go/model"
+	reporterhttp "github.com/openzipkin/zipkin-go/reporter/http"
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -30,6 +34,20 @@ func main() {
 	if args.Debug {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+
+	var tracer *zipkin.Tracer
+	if args.Zipkin != "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error retrieving node hostname")
+		}
+
+		tracer, err = zipkin.NewTracer(reporterhttp.NewReporter(args.Zipkin), zipkin.WithSampler(zipkin.AlwaysSample),
+			zipkin.WithLocalEndpoint(&model.Endpoint{ServiceName: hostname}))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error initialising Zipkin")
+		}
 	}
 
 	dbconn, err := sql.Open("postgres", args.DB)
@@ -64,6 +82,10 @@ func main() {
 	}
 	srv.GlobalRouter.Use(middleware.Logging())
 	srv.GlobalRouter.Use(middleware.Headers())
+	if tracer != nil {
+		srv.GlobalRouter.Use(zipkinhttp.NewServerMiddleware(tracer, zipkinhttp.TagResponseSize(true)))
+		srv.GlobalRouter.Use(middleware.ZipkinExtended)
+	}
 	srv.Router = srv.GlobalRouter.Schemes("https").Host(args.Domain).Subrouter()
 	api.Mount(srv)
 	mdm.Mount(srv)
