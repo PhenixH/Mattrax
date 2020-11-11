@@ -1,4 +1,5 @@
 export function errorForStatus(res: any, catchErr: string): Error {
+  console.error('Error on request: ' + res.headers.get('x-request-id'))
   if (res.status === 401) {
     const err = new Error('Unauthorised access to API')
     err.name = 'AuthError'

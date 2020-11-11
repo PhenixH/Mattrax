@@ -18,7 +18,7 @@
           <h2>Azure AD OID:</h2>
           <p>{{ user.azuread_oid }}</p>
         </div>
-        <div v-if="user.azuread_oid" class="datapoint">
+        <!-- <div v-if="user.azuread_oid" class="datapoint">
           <h2>Permission Level:</h2>
           <p>
             {{
@@ -26,7 +26,7 @@
               user.permission_level.slice(1)
             }}
           </p>
-        </div>
+        </div> -->
       </div>
     </div>
 
@@ -54,6 +54,7 @@ export default Vue.extend({
     this.$store
       .dispatch('users/getByID', this.$route.params.id)
       .then((user) => {
+        console.log(user)
         this.user = user
         this.loading = false
       })

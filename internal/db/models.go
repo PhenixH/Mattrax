@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-
-	"github.com/mattrax/Mattrax/pkg/null"
 )
 
 type DeviceState string
@@ -31,22 +29,22 @@ func (e *DeviceState) Scan(src interface{}) error {
 	return nil
 }
 
-type EnrollmentType string
+type ManagementProtocol string
 
 const (
-	EnrollmentTypeUnenrolled EnrollmentType = "Unenrolled"
-	EnrollmentTypeUser       EnrollmentType = "User"
-	EnrollmentTypeDevice     EnrollmentType = "Device"
+	ManagementProtocolWindows ManagementProtocol = "windows"
+	ManagementProtocolAgent   ManagementProtocol = "agent"
+	ManagementProtocolApple   ManagementProtocol = "apple"
 )
 
-func (e *EnrollmentType) Scan(src interface{}) error {
+func (e *ManagementProtocol) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EnrollmentType(s)
+		*e = ManagementProtocol(s)
 	case string:
-		*e = EnrollmentType(s)
+		*e = ManagementProtocol(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EnrollmentType: %T", src)
+		return fmt.Errorf("unsupported scan type for ManagementProtocol: %T", src)
 	}
 	return nil
 }
@@ -77,21 +75,17 @@ type Certificate struct {
 }
 
 type Device struct {
-	ID               int32          `json:"id"`
-	Udid             string         `json:"udid"`
-	State            DeviceState    `json:"state"`
-	EnrollmentType   EnrollmentType `json:"enrollment_type"`
-	Name             string         `json:"name"`
-	Description      null.String    `json:"description"`
-	Model            string         `json:"model"`
-	HwDevID          string         `json:"hw_dev_id"`
-	OperatingSystem  string         `json:"operating_system"`
-	AzureDid         null.String    `json:"azure_did"`
-	NodecacheVersion string         `json:"nodecache_version"`
-	Lastseen         time.Time      `json:"lastseen"`
-	LastseenStatus   int32          `json:"lastseen_status"`
-	EnrolledAt       time.Time      `json:"enrolled_at"`
-	EnrolledBy       null.String    `json:"enrolled_by"`
+	ID          string             `json:"id"`
+	TenantID    string             `json:"tenant_id"`
+	Protocol    ManagementProtocol `json:"protocol"`
+	Udid        string             `json:"udid"`
+	Name        string             `json:"name"`
+	Description sql.NullString     `json:"description"`
+	Model       sql.NullString     `json:"model"`
+	State       DeviceState        `json:"state"`
+	Owner       sql.NullString     `json:"owner"`
+	AzureDid    sql.NullString     `json:"azure_did"`
+	EnrolledAt  time.Time          `json:"enrolled_at"`
 }
 
 type DeviceCache struct {
@@ -109,24 +103,21 @@ type DeviceInventory struct {
 	Value    string `json:"value"`
 }
 
-type DeviceSessionCache struct {
-}
-
 type Group struct {
-	ID          int32  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Priority    int16  `json:"priority"`
+	ID          string         `json:"id"`
+	TenantID    string         `json:"tenant_id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
 }
 
 type GroupDevice struct {
-	GroupID  int32 `json:"group_id"`
-	DeviceID int32 `json:"device_id"`
+	GroupID  string `json:"group_id"`
+	DeviceID string `json:"device_id"`
 }
 
 type GroupPolicy struct {
-	GroupID  sql.NullInt32 `json:"group_id"`
-	PolicyID sql.NullInt32 `json:"policy_id"`
+	GroupID  sql.NullString `json:"group_id"`
+	PolicyID sql.NullString `json:"policy_id"`
 }
 
 type PoliciesPayload struct {
@@ -140,26 +131,30 @@ type PoliciesPayload struct {
 }
 
 type Policy struct {
-	ID          int32  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Priority    int16  `json:"priority"`
+	ID          string         `json:"id"`
+	TenantID    string         `json:"tenant_id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
 }
 
-type Setting struct {
-	TenantName        string `json:"tenant_name"`
-	TenantEmail       string `json:"tenant_email"`
-	TenantWebsite     string `json:"tenant_website"`
-	TenantPhone       string `json:"tenant_phone"`
-	TenantAzureid     string `json:"tenant_azureid"`
-	DisableEnrollment bool   `json:"disable_enrollment"`
+type Tenant struct {
+	ID            string         `json:"id"`
+	DisplayName   string         `json:"display_name"`
+	PrimaryDomain string         `json:"primary_domain"`
+	Description   sql.NullString `json:"description"`
+}
+
+type TenantUser struct {
+	UserUpn         string              `json:"user_upn"`
+	TenantID        string              `json:"tenant_id"`
+	PermissionLevel UserPermissionLevel `json:"permission_level"`
 }
 
 type User struct {
-	Upn             string              `json:"upn"`
-	Fullname        string              `json:"fullname"`
-	Password        null.String         `json:"password"`
-	MfaToken        null.String         `json:"mfa_token"`
-	AzureadOid      null.String         `json:"azuread_oid"`
-	PermissionLevel UserPermissionLevel `json:"permission_level"`
+	Upn        string         `json:"upn"`
+	Fullname   string         `json:"fullname"`
+	Password   sql.NullString `json:"password"`
+	MfaToken   sql.NullString `json:"mfa_token"`
+	AzureadOid sql.NullString `json:"azuread_oid"`
+	TenantID   sql.NullString `json:"tenant_id"`
 }

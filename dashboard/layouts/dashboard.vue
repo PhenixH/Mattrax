@@ -16,7 +16,7 @@
 import Vue from 'vue'
 
 export default Vue.extend({
-  middleware: ['auth', 'administrators-only'],
+  middleware: ['auth', 'administrators-only', 'tenant-required'],
   updated() {
     if (
       this.$store.state.dashboard.error !== null &&
@@ -124,5 +124,10 @@ main {
 
 .subtitley {
   font-size: 1em;
+}
+
+.field-title {
+  font-size: 0.9em;
+  padding: 0;
 }
 </style>

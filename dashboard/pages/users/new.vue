@@ -10,18 +10,21 @@
       </div>
       <div>
         <form class="create-form" @submit.prevent="createUser">
+          <p class="field-title">Name:</p>
           <input
             v-model="user.fullname"
             type="text"
             placeholder="Chris Green"
             required
           />
+          <p class="field-title">Email:</p>
           <input
             v-model="user.upn"
             type="email"
             placeholder="chris@otbeaumont.me"
             required
           />
+          <p class="field-title">Password:</p>
           <div class="password-field">
             <input
               v-model="user.password"

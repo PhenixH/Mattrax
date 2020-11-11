@@ -4,11 +4,18 @@ import { errorForStatus } from './errors'
 export const actions = {
   getAll(context: any) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/users', {
-        headers: new Headers({
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/users',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
         .then(async (res) => {
           if (res.status !== 200) {
             reject(errorForStatus(res, 'Error fetching users from server'))
@@ -48,14 +55,21 @@ export const actions = {
   },
   createUser(context: any, createUserRequest: any) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/users', {
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-        body: JSON.stringify(createUserRequest),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/users',
+        {
+          method: 'POST',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify(createUserRequest),
+        }
+      )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
             reject(errorForStatus(res, 'Error creating new user on server'))

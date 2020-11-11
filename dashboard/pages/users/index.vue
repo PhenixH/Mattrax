@@ -6,13 +6,15 @@
       <button @click="$router.push('/users/new')">Create New User</button>
       <input type="text" placeholder="Search..." disabled />
     </div>
-    <TableView :headings="['UPN', 'Name']">
+    <TableView :headings="['Name', 'UPN']">
       <tr v-for="user in users" :key="user.upn">
         <td>
-          <NuxtLink :to="'/users/' + user.upn" exact>{{ user.upn }}</NuxtLink>
+          <NuxtLink :to="'/users/' + user.upn" exact>{{
+            user.fullname
+          }}</NuxtLink>
         </td>
         <td>
-          {{ user.fullname }}
+          <NuxtLink :to="'/users/' + user.upn" exact>{{ user.upn }}</NuxtLink>
         </td>
       </tr>
     </TableView>

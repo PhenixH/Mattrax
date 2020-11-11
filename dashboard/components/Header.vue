@@ -1,7 +1,10 @@
 <template>
   <nav class="nav">
     <NuxtLink to="/" exact class="brand">
-      Mattrax - <span>{{ $store.state.authentication.user.org }}</span>
+      Mattrax -
+      <NuxtLink to="/login" exact
+        ><span>{{ $store.state.tenants.tenant.display_name }}</span></NuxtLink
+      >
     </NuxtLink>
 
     <div class="navRight">
@@ -57,6 +60,15 @@ export default {
 
 .brand span {
   font-size: 14px;
+}
+
+.brand a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand a:hover {
+  color: #d8d8d8;
 }
 
 .navRight {

@@ -1,7 +1,6 @@
 package authentication
 
 import (
-	"context"
 	"crypto/rsa"
 	"errors"
 	"net/url"
@@ -58,17 +57,18 @@ func (as Service) Token(rawToken string) (AuthClaims, error) {
 		return claims, nil
 	}
 
-	settings, err := as.db.Settings(context.TODO())
-	if err != nil {
-		return AuthClaims{}, err
-	}
+	// TODO
+	// settings, err := as.db.Settings(context.TODO())
+	// if err != nil {
+	// 	return AuthClaims{}, err
+	// }
 
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting AAD Tenant ID from settings")
 		return AuthClaims{}, errors.New("the tokens legitimacy could not be verified due to an internal error")
-	} else if settings.TenantAzureid == "" {
-		return AuthClaims{}, errors.New("the token was signed with an untrusted certificate")
-	}
+	} //else if settings.TenantAzureid == "" {
+	// 	return AuthClaims{}, errors.New("the token was signed with an untrusted certificate")
+	// }
 
 	var microsoftJWKS jose.JSONWebKeySet
 	if value, found := as.cache.Get("microsoft-jwks"); !found {
@@ -97,9 +97,9 @@ func (as Service) Token(rawToken string) (AuthClaims, error) {
 		return AuthClaims{}, err
 	}
 
-	if msClaims.TenantID != settings.TenantAzureid {
-		return AuthClaims{}, errors.New("the user token was issued for another Azure Active Directory tenant")
-	}
+	// if msClaims.TenantID != settings.TenantAzureid {
+	// 	return AuthClaims{}, errors.New("the user token was issued for another Azure Active Directory tenant")
+	// }
 
 	return AuthClaims{
 		BasicClaims:                 basicClaims,

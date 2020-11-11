@@ -4,11 +4,18 @@ import { errorForStatus } from './errors'
 export const actions = {
   getAll(context: any) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/devices', {
-        headers: new Headers({
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/devices',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
         .then(async (res) => {
           if (res.status !== 200) {
             reject(errorForStatus(res, 'Error fetching devices from server'))
@@ -26,11 +33,19 @@ export const actions = {
   },
   getByID(context: any, deviceID: string) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/device/' + encodeURI(deviceID), {
-        headers: new Headers({
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/device/' +
+          encodeURI(deviceID),
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
         .then(async (res) => {
           if (res.status !== 200) {
             reject(errorForStatus(res, 'Error fetching device from server'))
@@ -48,11 +63,20 @@ export const actions = {
   },
   getInformationByID(context: any, deviceID: string) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/device/' + encodeURI(deviceID) + '/info', {
-        headers: new Headers({
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/device/' +
+          encodeURI(deviceID) +
+          '/info',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
@@ -75,11 +99,20 @@ export const actions = {
   },
   getScopeByID(context: any, deviceID: string) {
     return new Promise((resolve, reject) => {
-      fetch(process.env.baseUrl + '/device/' + encodeURI(deviceID) + '/scope', {
-        headers: new Headers({
-          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
-        }),
-      })
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/device/' +
+          encodeURI(deviceID) +
+          '/scope',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
         .then(async (res) => {
           if (res.status !== 200) {
             reject(

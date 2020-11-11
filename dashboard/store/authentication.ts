@@ -8,7 +8,6 @@ export interface LoginRequest {
 interface UserInformation {
   name?: string
   upn?: string
-  org?: string
   aud?: string
 }
 
@@ -58,7 +57,6 @@ export const actions = {
       const userInfo: UserInformation = {
         name: claims.name,
         upn: claims.sub,
-        org: claims.org,
         aud: claims.aud,
       }
 
@@ -84,6 +82,7 @@ export const actions = {
           const data = await res.json()
           sessionStorage.setItem('authToken', data.token)
           context.commit('setAuthToken', data.token)
+          context.commit('tenants/setTenants', data.tenants, { root: true })
           context.dispatch('populateUserInfomation')
           resolve()
         })
@@ -96,7 +95,10 @@ export const actions = {
 
   logout(context: any) {
     sessionStorage.removeItem('authToken')
-    context.commit('setAuthToken', null)
+    sessionStorage.removeItem('tenant')
+    context.commit('setAuthToken', '')
     context.commit('setUserInformation', {})
+    context.commit('tenants/set', null, { root: true })
+    context.commit('tenants/setTenants', null, { root: true })
   },
 }

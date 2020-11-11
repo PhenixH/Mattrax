@@ -8,9 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// WinProtocolID is the ID used in database protocol column to represent this protocol
-const WinProtocolID = 1
-
 // ProviderID is the unique ID used to identify the MDM server to the management client
 const ProviderID = "MattraxMDM"
 

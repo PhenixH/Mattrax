@@ -6,6 +6,7 @@ require (
 	github.com/alexflint/go-arg v1.3.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
+	github.com/go-playground/validator/v10 v10.4.1
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.8.0

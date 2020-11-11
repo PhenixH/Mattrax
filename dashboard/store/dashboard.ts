@@ -10,6 +10,7 @@ export const mutations = {
   setError(state: State, error: Error) {
     state.error = error
   },
+
   clearError(state: State) {
     state.error = null
   },

@@ -2,32 +2,49 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"regexp"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
+	"github.com/mattrax/Mattrax/internal/middleware"
 )
 
-const MaxJSONBodySize = 2097152
+var validate = validator.New()
+
+func init() {
+	var alphanumspaceRegex = regexp.MustCompile("^[a-zA-Z0-9 ]+$")
+	validate.RegisterValidation("alphanumspace", func(fl validator.FieldLevel) bool {
+		return alphanumspaceRegex.MatchString(fl.Field().String())
+	})
+}
 
 // Mount initialises the API
 func Mount(srv *mattrax.Server) {
 	r := srv.Router.PathPrefix("/api").Subrouter()
-	r.Use(Headers(srv))
+	r.Use(middleware.APIHeaders(srv))
 	r.Use(mux.CORSMethodMiddleware(r))
 
 	r.HandleFunc("/login", Login(srv)).Methods(http.MethodPost, http.MethodOptions)
 
 	rAuthed := r.PathPrefix("/").Subrouter()
-	rAuthed.Use(RequireAuthentication(srv))
+	rAuthed.Use(middleware.RequireAuthentication(srv))
 
-	rAuthed.HandleFunc("/devices", Devices(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices")
-	rAuthed.HandleFunc("/device/{id}", Device(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id")
-	rAuthed.HandleFunc("/device/{id}/info", DeviceInformation(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/info")
-	rAuthed.HandleFunc("/device/{id}/scope", DeviceScope(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/scope")
-	rAuthed.HandleFunc("/groups", Groups(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/groups")
-	rAuthed.HandleFunc("/group/{id}", Group(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/groups/:id")
-	rAuthed.HandleFunc("/policies", Policies(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/policies")
-	rAuthed.HandleFunc("/policy/{id}", Policy(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/policies/:id")
-	rAuthed.HandleFunc("/users", Users(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/users")
+	if os.Getenv("MATTRAX_CLOUD") == "true" {
+		rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+	}
+
+	// rAuthed.HandleFunc("/me", Me(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/me")
+	rAuthed.HandleFunc("/users", Users(srv)).Methods(http.MethodPost, http.MethodOptions).Name("/users")
+	rAuthed.HandleFunc("/{tenant}/users", Users(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/users")
 	rAuthed.HandleFunc("/user/{upn}", User(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/users/:upn")
+	rAuthed.HandleFunc("/{tenant}/devices", Devices(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices")
+	rAuthed.HandleFunc("/{tenant}/device/{udid}", Device(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id")
+	rAuthed.HandleFunc("/{tenant}/device/{udid}/info", DeviceInformation(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/info")
+	rAuthed.HandleFunc("/{tenant}/device/{udid}/scope", DeviceScope(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/scope")
+	rAuthed.HandleFunc("/{tenant}/groups", Groups(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/groups")
+	rAuthed.HandleFunc("/{tenant}/group/{gid}", Group(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/groups/:id")
+	rAuthed.HandleFunc("/{tenant}/policies", Policies(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/policies")
+	rAuthed.HandleFunc("/{tenant}/policy/{pid}", Policy(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/policies/:id")
 }

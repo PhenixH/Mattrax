@@ -3,6 +3,7 @@
   <div v-else>
     <h1>Policies</h1>
     <div class="filter-panel">
+      <button @click="$router.push('/policies/new')">Create New Policy</button>
       <input type="text" placeholder="Search..." disabled />
     </div>
     <TableView :headings="['Name', 'Description', 'Payloads']">
