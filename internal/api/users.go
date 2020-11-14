@@ -83,7 +83,7 @@ func Users(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			if err := srv.DB.NewUser(r.Context(), db.NewUserParams{
-				Upn:      cmd.UPN,
+				UPN:      cmd.UPN,
 				Fullname: cmd.FullName,
 				Password: sql.NullString{
 					String: string(passwordHash),
@@ -106,26 +106,74 @@ func Users(srv *mattrax.Server) http.HandlerFunc {
 }
 
 func User(srv *mattrax.Server) http.HandlerFunc {
+	// TODO: Join with db.User
+	type PatchRequest struct {
+		UPN      string         `json:"upn"`
+		Fullname string         `json:"fullname"`
+		Disabled *bool          `json:"disabled"` // TODO: SQLC type override for this and then use db.User here
+		Password sql.NullString `json:"password"`
+	}
+
+	type PatchResponse struct {
+		UPN string `json:"upn"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
-		user, err := srv.DB.GetUser(r.Context(), vars["upn"])
-		if err == sql.ErrNoRows {
-			span.Tag("warn", "user not found")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		} else if err != nil {
-			log.Printf("[GetUser Error]: %s\n", err)
-			span.Tag("err", fmt.Sprintf("error retrieving user: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		if r.Method == http.MethodGet {
+			user, err := srv.DB.GetUser(r.Context(), vars["upn"])
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "user not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[GetUser Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving user: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(user); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPatch {
+			var cmd PatchRequest
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			// TODO: Work for both types of user -> admin or within tenant + Can modify some about themselves without admin
+
+			var upn string
+			query := `UPDATE users SET upn=COALESCE(NULLIF($2, ''), upn), fullname=COALESCE(NULLIF($3, ''), fullname), password=COALESCE(NULLIF($4, ''), password), disabled=COALESCE($5, disabled) WHERE upn = $1 RETURNING upn;`
+			err := srv.DBConn.QueryRow(query, vars["upn"], cmd.UPN, cmd.Fullname, cmd.Password, cmd.Disabled).Scan(&upn)
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "user not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[UpdateUser Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error updating user: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(PatchResponse{
+				UPN: upn,
+			}); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 }

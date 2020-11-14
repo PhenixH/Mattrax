@@ -29,7 +29,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .title {
   font-size: 29px;
 }

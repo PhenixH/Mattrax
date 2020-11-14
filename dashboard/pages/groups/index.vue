@@ -1,20 +1,27 @@
 <template>
   <div v-if="loading" class="loading">Loading Groups...</div>
   <div v-else>
-    <h1>Groups</h1>
-    <div class="filter-panel">
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+      </ul>
+      <h1>Groups</h1>
+    </div>
+    <div class="page-nav">
       <button @click="$router.push('/groups/new')">Create New Group</button>
       <input type="text" placeholder="Search..." disabled />
     </div>
-    <TableView :headings="['Name']">
-      <tr v-for="group in groups" :key="group.id">
-        <td>
-          <NuxtLink :to="'/groups/' + group.id" exact>{{
-            group.name
-          }}</NuxtLink>
-        </td>
-      </tr>
-    </TableView>
+    <div class="page-body">
+      <TableView :headings="['Name']">
+        <tr v-for="group in groups" :key="group.id">
+          <td>
+            <NuxtLink :to="'/groups/' + group.id" exact>{{
+              group.name
+            }}</NuxtLink>
+          </td>
+        </tr>
+      </TableView>
+    </div>
   </div>
 </template>
 
@@ -41,4 +48,4 @@ export default Vue.extend({
 })
 </script>
 
-<style></style>
+<style scoped></style>

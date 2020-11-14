@@ -1,16 +1,46 @@
 <template>
   <div v-if="loading" class="loading">Loading Settings...</div>
   <div v-else>
-    <h1>Settings</h1>
-    <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+      </ul>
+      <h1>Settings</h1>
+    </div>
+    <div class="page-nav">
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-      <button class="w3-bar-item w3-button" @click="navigate('users')">
-        Users
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '/tenant',
+        }"
+        @click="navigate('/tenant')"
+      >
+        Tenant
+      </button>
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '/user',
+        }"
+        @click="navigate('/user')"
+      >
+        User
       </button>
     </div>
-    <NuxtChild />
+    <div class="page-body">
+      <NuxtChild :editting="editting" />
+    </div>
+    <div class="page-footer">
+      <button @click="editting ? save() : (editting = true)">
+        {{ editting ? 'Save' : 'Edit' }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -22,14 +52,41 @@ export default Vue.extend({
   data() {
     return {
       loading: false,
+      editting: false,
     }
   },
   methods: {
     navigate(pathSuffix: string) {
-      this.$router.push('/settings/' + pathSuffix)
+      this.$router.push('/settings' + pathSuffix)
+    },
+    save() {
+      if (this.editting === false) return
+
+      let patch = null
+      this.$children[1].$el
+        .querySelectorAll('input, select, checkbox, textarea')
+        .forEach((node) => {
+          if (node.value !== node.defaultValue) {
+            if (patch === null) patch = {}
+            if (node.getAttribute('data-type') === 'bool') {
+              patch[node.name] = node.value === 'true'
+            } else {
+              patch[node.name] = node.value
+            }
+          }
+        })
+      if (patch === null) {
+        this.editting = false
+        return
+      }
+
+      this.$children[1]
+        .save(patch)
+        .then(() => (this.editting = false))
+        .catch((err) => this.$store.commit('dashboard/setError', err)) // TODO: Warning that saving failed
     },
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>

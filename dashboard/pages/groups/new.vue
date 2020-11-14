@@ -1,26 +1,25 @@
 <template>
   <div v-if="loading" class="loading">Creating Group...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <GridIcon view-box="0 0 24 24" height="40" width="40" />Create New
-          Group
-        </h1>
-      </div>
-      <div>
-        <form class="create-form" @submit.prevent="createGroup">
-          <p class="field-title">Name:</p>
-          <input
-            v-model="group.name"
-            type="text"
-            placeholder="Student Devices"
-            required
-          />
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/groups">Groups</NuxtLink></li>
+      </ul>
+      <h1>Create New Group</h1>
+    </div>
+    <div class="page-body">
+      <form class="create-form" @submit.prevent="createGroup">
+        <p class="field-title">Name:</p>
+        <input
+          v-model="group.name"
+          type="text"
+          placeholder="Student Devices"
+          required
+        />
 
-          <button type="submit" class="submit">Create Group</button>
-        </form>
-      </div>
+        <button type="submit" class="submit">Create Group</button>
+      </form>
     </div>
   </div>
 </template>
@@ -51,7 +50,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .create-form {
   padding: 10px;
 }

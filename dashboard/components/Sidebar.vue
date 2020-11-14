@@ -1,59 +1,41 @@
 <template>
-  <aside class="sidebar">
+  <aside :class="{ sidebar: true, icons: !$store.state.dashboard.menuActive }">
     <NuxtLink to="/" exact>
       <HomeIcon />
-      <span>Dashboard</span>
+      <span v-if="$store.state.dashboard.menuActive">Dashboard</span>
     </NuxtLink>
     <NuxtLink to="/devices" exact>
       <PhoneIcon />
-      <span>Devices</span>
+      <span v-if="$store.state.dashboard.menuActive">Devices</span>
     </NuxtLink>
     <NuxtLink to="/users" exact>
       <UserIcon />
-      <span>Users</span>
+      <span v-if="$store.state.dashboard.menuActive">Users</span>
     </NuxtLink>
     <NuxtLink to="/policies" exact>
       <BookIcon />
-      <span>Policies</span>
+      <span v-if="$store.state.dashboard.menuActive">Policies</span>
     </NuxtLink>
     <NuxtLink to="/groups" exact>
       <GridIcon />
-      <span>Groups</span>
+      <span v-if="$store.state.dashboard.menuActive">Groups</span>
     </NuxtLink>
     <!-- <NuxtLink to="/reporting" exact>
       <DatabaseIcon />
-      <span>Reporting</span>
+      <span v-if="$store.state.dashboard.menuActive">Reporting</span>
     </NuxtLink> -->
     <NuxtLink to="/settings" exact>
       <CogIcon />
-      <span>Settings</span>
+      <span v-if="$store.state.dashboard.menuActive">Settings</span>
     </NuxtLink>
   </aside>
 </template>
 
-<script>
-import HomeIcon from '@/assets/icon/home.svg?inline'
-import PhoneIcon from '@/assets/icon/phone.svg?inline'
-import UserIcon from '@/assets/icon/user.svg?inline'
-import BookIcon from '@/assets/icon/book.svg?inline'
-import GridIcon from '@/assets/icon/grid.svg?inline'
-// import DatabaseIcon from '@/assets/icon/database.svg?inline'
-import CogIcon from '@/assets/icon/cog.svg?inline'
-
-export default {
-  components: {
-    HomeIcon,
-    PhoneIcon,
-    UserIcon,
-    BookIcon,
-    GridIcon,
-    // DatabaseIcon,
-    CogIcon,
-  },
-}
+<script lang="ts">
+export default {}
 </script>
 
-<style>
+<style scoped>
 .sidebar {
   height: 100%;
   width: 250px;
@@ -62,6 +44,11 @@ export default {
   top: 50px;
   background: var(--secondary-color);
   color: var(--light-text-color);
+  transition: all 0.2s linear;
+}
+
+.sidebar.icons {
+  width: 54px;
 }
 
 .sidebar a {

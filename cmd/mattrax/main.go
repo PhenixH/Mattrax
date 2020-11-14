@@ -69,6 +69,7 @@ func main() {
 		Args:         args,
 		GlobalRouter: mux.NewRouter(),
 		DB:           q,
+		DBConn:       dbconn,
 		Cache:        cache.New(5*time.Minute, 10*time.Minute),
 	}
 	if srv.Settings, err = settings.New(srv.DB); err != nil {

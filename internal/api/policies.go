@@ -36,7 +36,7 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("limit", fmt.Sprintf("%v", limit))
 			span.Tag("offset", fmt.Sprintf("%v", offset))
 
-			users, err := srv.DB.GetPolicies(r.Context(), db.GetPoliciesParams{
+			policies, err := srv.DB.GetPolicies(r.Context(), db.GetPoliciesParams{
 				TenantID: vars["tenant"],
 				Limit:    limit,
 				Offset:   offset,
@@ -48,8 +48,12 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
+			if policies == nil {
+				policies = make([]db.GetPoliciesRow, 0)
+			}
+
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			if err := json.NewEncoder(w).Encode(users); err != nil {
+			if err := json.NewEncoder(w).Encode(policies); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -100,27 +104,50 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
+		if r.Method == http.MethodGet {
+			user, err := srv.DB.GetPolicy(r.Context(), db.GetPolicyParams{
+				ID:       vars["pid"],
+				TenantID: vars["tenant"],
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "policy not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[GetPolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving policy: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		user, err := srv.DB.GetPolicy(r.Context(), db.GetPolicyParams{
-			ID:       vars["pid"],
-			TenantID: vars["tenant"],
-		})
-		if err == sql.ErrNoRows {
-			span.Tag("warn", "policy not found")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		} else if err != nil {
-			log.Printf("[GetPolicy Error]: %s\n", err)
-			span.Tag("err", fmt.Sprintf("error retrieving policy: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(user); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPatch {
+			var cmd db.Policy
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			query := `UPDATE policies SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
+			if _, err := srv.DBConn.Exec(query, vars["pid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+				span.Tag("warn", "policy not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[UpdatePolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error updating policy: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		}
 	}
 }

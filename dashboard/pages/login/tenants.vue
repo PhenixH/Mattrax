@@ -1,28 +1,5 @@
 <template>
-  <div v-if="phase == 0" class="page-content">
-    <div v-if="loading" class="loading">Checking Login...</div>
-    <form v-else class="form" @submit.prevent="login">
-      <p v-if="errorTxt" class="error-msg">{{ errorTxt }}</p>
-      <input
-        v-model="user.upn"
-        required
-        type="email"
-        placeholder="chris@otbeaumont.me"
-        autocomplete="username"
-        @input="errorTxt = null"
-      />
-      <input
-        v-model="user.password"
-        required
-        type="password"
-        placeholder="password"
-        autocomplete="current-password"
-        @input="errorTxt = null"
-      />
-      <button>LOGIN</button>
-    </form>
-  </div>
-  <div v-else-if="phase == 1" class="page-content">
+  <div class="page-content">
     <div v-if="loading" class="loading">Loading Tenants...</div>
     <p v-else-if="errorTxt" class="error-msg">{{ errorTxt }}</p>
     <div v-else>
@@ -58,19 +35,15 @@
 import Vue from 'vue'
 
 export default Vue.extend({
+  middleware: ['auth'],
   data() {
     return {
       loading: false,
       errorTxt: null,
-      phase: this.$store.state.authentication.authToken === '' ? 0 : 1,
-      user: {
-        upn: '',
-        password: '',
-      },
     }
   },
   created() {
-    if (this.phase === 1 && this.$store.state.tenants.tenants === null) {
+    if (this.$store.state.tenants.tenants === null) {
       this.loading = true
       this.$store
         .dispatch('tenants/getAll', this.user)
@@ -82,36 +55,15 @@ export default Vue.extend({
     }
   },
   methods: {
-    login() {
-      this.loading = true
-      this.$store
-        .dispatch('authentication/login', this.user)
-        .then(() => {
-          if (this.$store.state.authentication.user.aud === 'dashboard') {
-            if (this.$store.state.tenants.tenants.length === 1) {
-              this.setTenant(this.$store.state.tenants.tenants[0])
-            } else {
-              this.phase = 1
-              this.loading = false
-            }
-          } else if (
-            this.$store.state.authentication.user.aud === 'enrollment'
-          ) {
-            this.$router.push('/enroll')
-          } else {
-            console.error(new Error('Unknown authentication token audience'))
-          }
-        })
-        .catch((err) => {
-          this.loading = false
-          this.errorTxt = err
-        })
-    },
     setTenant(tenant: object) {
       this.$store.commit('tenants/set', tenant)
       this.$router.push(
         this.$route.query?.redirect_to !== undefined
-          ? this.$route.query?.redirect_to
+          ? Array.isArray(this.$route.query.redirect_to)
+            ? this.$route.query.redirect_to[0] !== null
+              ? this.$route.query.redirect_to[0]
+              : '/'
+            : this.$route.query.redirect_to
           : '/'
       )
     },
@@ -119,7 +71,7 @@ export default Vue.extend({
       this.phase = 0
       this.$store
         .dispatch('authentication/logout')
-        .then(() => this.$router.go(0))
+        .then(() => this.$router.push('/login'))
         .catch((err) => {
           console.error(err)
         })

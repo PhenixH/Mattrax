@@ -18,8 +18,8 @@ import (
 	"github.com/mattrax/Mattrax/mdm/agent"
 )
 
-func enroll(upn string) error {
-	if info, err := os.Stat(AgentConfigPath); info != nil && !info.IsDir() {
+func enroll(upn string, password string) error {
+	if info, err := os.Stat(AgentConfigDefaultPath); info != nil && !info.IsDir() {
 		return fmt.Errorf("error uneroll before enrolling in a new server")
 	} else if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("error retrieving existance of current agent configuration: %w", err)
@@ -43,8 +43,6 @@ func enroll(upn string) error {
 	} else if res.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("error mdm server not found")
 	}
-
-	// TODO: Authentication phase
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -75,6 +73,10 @@ func enroll(upn string) error {
 		UDID:               udid,
 		Hostname:           hostname,
 		CertificateRequest: csrRaw,
+		User: agent.EnrollRequestAuthentication{
+			Username: upn,
+			Password: password,
+		},
 	}
 
 	enrollmentReqBody, err := json.Marshal(enrollmentReq)
@@ -99,7 +101,7 @@ func enroll(upn string) error {
 	}
 
 	var agentConfig = AgentConfig{enrollRes, base64.StdEncoding.EncodeToString(x509.MarshalPKCS1PrivateKey(certKey))}
-	agentConfigFile, err := os.Create(AgentConfigPath)
+	agentConfigFile, err := os.Create(AgentConfigDefaultPath)
 	if err != nil {
 		return fmt.Errorf("error saving agent configuration: %w", err)
 	}

@@ -22,6 +22,12 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.addDevicesToGroupStmt, err = db.PrepareContext(ctx, addDevicesToGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query AddDevicesToGroup: %w", err)
+	}
+	if q.addPoliciesToGroupStmt, err = db.PrepareContext(ctx, addPoliciesToGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query AddPoliciesToGroup: %w", err)
+	}
 	if q.createRawCertStmt, err = db.PrepareContext(ctx, createRawCert); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateRawCert: %w", err)
 	}
@@ -40,6 +46,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getDevicesStmt, err = db.PrepareContext(ctx, getDevices); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDevices: %w", err)
 	}
+	if q.getDevicesInGroupStmt, err = db.PrepareContext(ctx, getDevicesInGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDevicesInGroup: %w", err)
+	}
 	if q.getGroupStmt, err = db.PrepareContext(ctx, getGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGroup: %w", err)
 	}
@@ -49,11 +58,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getPoliciesStmt, err = db.PrepareContext(ctx, getPolicies); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPolicies: %w", err)
 	}
+	if q.getPoliciesInGroupStmt, err = db.PrepareContext(ctx, getPoliciesInGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPoliciesInGroup: %w", err)
+	}
 	if q.getPolicyStmt, err = db.PrepareContext(ctx, getPolicy); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPolicy: %w", err)
 	}
 	if q.getRawCertStmt, err = db.PrepareContext(ctx, getRawCert); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRawCert: %w", err)
+	}
+	if q.getTenantStmt, err = db.PrepareContext(ctx, getTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTenant: %w", err)
 	}
 	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
@@ -99,6 +114,16 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.addDevicesToGroupStmt != nil {
+		if cerr := q.addDevicesToGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addDevicesToGroupStmt: %w", cerr)
+		}
+	}
+	if q.addPoliciesToGroupStmt != nil {
+		if cerr := q.addPoliciesToGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addPoliciesToGroupStmt: %w", cerr)
+		}
+	}
 	if q.createRawCertStmt != nil {
 		if cerr := q.createRawCertStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createRawCertStmt: %w", cerr)
@@ -129,6 +154,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getDevicesStmt: %w", cerr)
 		}
 	}
+	if q.getDevicesInGroupStmt != nil {
+		if cerr := q.getDevicesInGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDevicesInGroupStmt: %w", cerr)
+		}
+	}
 	if q.getGroupStmt != nil {
 		if cerr := q.getGroupStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getGroupStmt: %w", cerr)
@@ -144,6 +174,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getPoliciesStmt: %w", cerr)
 		}
 	}
+	if q.getPoliciesInGroupStmt != nil {
+		if cerr := q.getPoliciesInGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPoliciesInGroupStmt: %w", cerr)
+		}
+	}
 	if q.getPolicyStmt != nil {
 		if cerr := q.getPolicyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPolicyStmt: %w", cerr)
@@ -152,6 +187,11 @@ func (q *Queries) Close() error {
 	if q.getRawCertStmt != nil {
 		if cerr := q.getRawCertStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRawCertStmt: %w", cerr)
+		}
+	}
+	if q.getTenantStmt != nil {
+		if cerr := q.getTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTenantStmt: %w", cerr)
 		}
 	}
 	if q.getUserStmt != nil {
@@ -258,17 +298,22 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                                  DBTX
 	tx                                  *sql.Tx
+	addDevicesToGroupStmt               *sql.Stmt
+	addPoliciesToGroupStmt              *sql.Stmt
 	createRawCertStmt                   *sql.Stmt
 	deleteUserStmt                      *sql.Stmt
 	getDeviceStmt                       *sql.Stmt
 	getDeviceGroupsStmt                 *sql.Stmt
 	getDevicePoliciesStmt               *sql.Stmt
 	getDevicesStmt                      *sql.Stmt
+	getDevicesInGroupStmt               *sql.Stmt
 	getGroupStmt                        *sql.Stmt
 	getGroupsStmt                       *sql.Stmt
 	getPoliciesStmt                     *sql.Stmt
+	getPoliciesInGroupStmt              *sql.Stmt
 	getPolicyStmt                       *sql.Stmt
 	getRawCertStmt                      *sql.Stmt
+	getTenantStmt                       *sql.Stmt
 	getUserStmt                         *sql.Stmt
 	getUserPermissionLevelForTenantStmt *sql.Stmt
 	getUserSecureStmt                   *sql.Stmt
@@ -288,17 +333,22 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                                  tx,
 		tx:                                  tx,
+		addDevicesToGroupStmt:               q.addDevicesToGroupStmt,
+		addPoliciesToGroupStmt:              q.addPoliciesToGroupStmt,
 		createRawCertStmt:                   q.createRawCertStmt,
 		deleteUserStmt:                      q.deleteUserStmt,
 		getDeviceStmt:                       q.getDeviceStmt,
 		getDeviceGroupsStmt:                 q.getDeviceGroupsStmt,
 		getDevicePoliciesStmt:               q.getDevicePoliciesStmt,
 		getDevicesStmt:                      q.getDevicesStmt,
+		getDevicesInGroupStmt:               q.getDevicesInGroupStmt,
 		getGroupStmt:                        q.getGroupStmt,
 		getGroupsStmt:                       q.getGroupsStmt,
 		getPoliciesStmt:                     q.getPoliciesStmt,
+		getPoliciesInGroupStmt:              q.getPoliciesInGroupStmt,
 		getPolicyStmt:                       q.getPolicyStmt,
 		getRawCertStmt:                      q.getRawCertStmt,
+		getTenantStmt:                       q.getTenantStmt,
 		getUserStmt:                         q.getUserStmt,
 		getUserPermissionLevelForTenantStmt: q.getUserPermissionLevelForTenantStmt,
 		getUserSecureStmt:                   q.getUserSecureStmt,

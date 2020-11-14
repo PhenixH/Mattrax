@@ -1,6 +1,5 @@
 <template>
   <div class="container">
-    <Breadcrumb />
     <div>
       <h1 class="title">Mattrax Dashboard</h1>
       <div class="links">
@@ -41,7 +40,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .container {
   margin: 0 auto;
   min-height: 100vh;

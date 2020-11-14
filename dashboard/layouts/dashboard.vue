@@ -1,8 +1,8 @@
 <template>
   <div>
-    <Header />
-    <Sidebar />
-    <main>
+    <Header :is-menu-active="menuActive" />
+    <Sidebar :is-menu-active="menuActive" />
+    <main :class="{ icons: !$store.state.dashboard.menuActive }">
       <div v-if="$store.state.dashboard.error">
         <h1>An Error Occured</h1>
         <p>{{ $store.state.dashboard.error }}</p>
@@ -17,6 +17,11 @@ import Vue from 'vue'
 
 export default Vue.extend({
   middleware: ['auth', 'administrators-only', 'tenant-required'],
+  data() {
+    return {
+      menuActive: false,
+    }
+  },
   updated() {
     if (
       this.$store.state.dashboard.error !== null &&
@@ -50,7 +55,8 @@ body {
   background-color: #f2f2f2;
 }
 
-h1 {
+h1,
+h2 {
   font-weight: 400;
 }
 
@@ -62,7 +68,7 @@ p {
   padding: 5px;
 }
 
-.brand {
+.mttx-brand {
   font-size: 28px;
   font-weight: 400;
   color: inherit;
@@ -75,59 +81,131 @@ p {
 main {
   height: 100%;
   margin: 50px 0 0 250px;
+  transition: all 0.2s linear;
+}
+
+main.icons {
+  margin: 50px 0 0 54px;
+}
+
+/* START OF NEW */
+
+.page-head {
+  background: white;
+  padding-left: 5px;
+}
+
+.page-head h1 {
+  padding-left: 15px;
+}
+
+.page-nav {
+  width: 100%;
+
+  background: white;
+  margin: 0;
+  box-shadow: 0 0 0 2px lightgrey;
+}
+
+.page-nav button {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  padding: 14px 16px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0);
+}
+
+.page-nav button.active {
+  border-bottom: 3px solid #353435;
+}
+
+.page-nav button:hover {
+  border-bottom: 3px solid #616161;
+  transition: 0.1s;
+}
+
+.page-body {
+  padding: 15px;
+  overflow: scroll;
+
+  /* min-height: 100%; */
+  /* height: auto !important; */
+  /* height: calc(100% - 50%); */
+  /* background: orange; */
+  /* height: 100%; */
+  /* top: 0; */
+  /* bottom: 100px;
+  position: relative;
+  overflow: scroll; */
+}
+
+.page-body input {
+  display: block;
+  margin: 10px;
   padding: 5px;
-  overflow-y: scroll;
+  width: 100%;
+  max-width: 300px;
+}
+
+.page-body select {
+  display: block;
+  margin: 10px;
+  padding: 5px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.page-footer {
+  width: 100%;
+  background: #fff;
+  border-top: 3px solid #353435;
+  padding: 10px;
+  position: absolute;
+  bottom: 0;
+}
+
+.page-footer button {
+  background-color: var(--primary-color-accent);
+  border: none;
+  outline: none;
+  color: white;
+  padding: 10px 32px;
+  font-size: 16px;
+  margin: 10px;
+  width: 100px;
 }
 
 .loading {
   margin: 10px;
 }
 
-.filter-panel {
-  margin: 0 auto;
-  width: 100%;
-  border-radius: 10px;
-  background-color: #fff;
-  margin: 5px;
-  padding: 5px;
+.breadcrumb {
+  font-size: 0.7em;
 }
 
-.panel {
-  margin: 0 auto;
-  width: 100%;
-  border-radius: 10px;
-  background-color: #fff;
-  margin: 5px;
-  padding: 5px;
+ul.breadcrumb {
+  margin: 0;
+  padding: 5px 10px;
+  list-style: none;
 }
 
-.panel-head {
-  border-bottom: 1px solid grey;
-
-  font-weight: 700;
-}
-
-.panel-head svg {
-  vertical-align: middle;
-  margin-right: 7px;
-}
-
-.panel-head h1 {
-  display: inline-block;
-  vertical-align: middle;
-  line-height: normal;
-}
-
-.panel-body {
-  padding: 5px;
-}
-
-.subtitley {
-  font-size: 1em;
-}
-
-.field-title {
+ul.breadcrumb li {
+  display: inline;
   font-size: 0.9em;
-  padding: 0;
+}
+
+ul.breadcrumb li + li:before {
+  color: black;
+  content: '/\00a0';
+}
+
+ul.breadcrumb li a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+ul.breadcrumb li a:hover {
+  color: var(--secondary-color-accent);
+  text-decoration: underline;
 }
 </style>

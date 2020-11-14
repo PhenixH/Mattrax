@@ -13,11 +13,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// EnrollRequestAuthentication is the authentication information for enrollment request
+type EnrollRequestAuthentication struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 // EnrollRequest is the request for a device to enroll
 type EnrollRequest struct {
-	UDID               string `json:"udid"`
-	Hostname           string `json:"hostname"`
-	CertificateRequest []byte `json:"certificateRequest"`
+	UDID               string                      `json:"udid"`
+	Hostname           string                      `json:"hostname"`
+	CertificateRequest []byte                      `json:"certificateRequest"`
+	User               EnrollRequestAuthentication `json:"user"`
 }
 
 // EnrollResponse is the response with the device enrollment information
@@ -45,8 +52,6 @@ func Enroll(srv *mattrax.Server) http.HandlerFunc {
 			return
 		}
 
-		// TODO: Header based authentication
-
 		var cmd EnrollRequest
 		err := json.NewDecoder(r.Body).Decode(&cmd)
 		if err != nil {
@@ -54,6 +59,8 @@ func Enroll(srv *mattrax.Server) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		// if cmd.User.Username cmd.User.Password
 
 		csr, err := x509.ParseCertificateRequest(cmd.CertificateRequest)
 		if err != nil {

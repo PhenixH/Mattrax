@@ -48,6 +48,10 @@ func Groups(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
+			if groups == nil {
+				groups = make([]db.GetGroupsRow, 0)
+			}
+
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			if err := json.NewEncoder(w).Encode(groups); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
@@ -102,23 +106,81 @@ func Group(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
-		user, err := srv.DB.GetGroup(r.Context(), db.GetGroupParams{
-			ID:       vars["gid"],
-			TenantID: vars["tenant"],
+		if r.Method == http.MethodGet {
+			user, err := srv.DB.GetGroup(r.Context(), db.GetGroupParams{
+				ID:       vars["gid"],
+				TenantID: vars["tenant"],
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "group not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[GetGroup Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error retrieving group: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(user); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPatch {
+			var cmd db.Group
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			query := `UPDATE groups SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
+			if _, err := srv.DBConn.Exec(query, vars["gid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+				span.Tag("warn", "group not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[UpdateGroup Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error updating group: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}
+}
+
+func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		span := zipkin.SpanOrNoopFromContext(r.Context())
+		vars := mux.Vars(r)
+		groupDevices, err := srv.DB.GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
+			GroupID: vars["gid"],
+			// TODO: Pagination
+			Limit:  100,
+			Offset: 0,
 		})
 		if err == sql.ErrNoRows {
 			span.Tag("warn", "group not found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		} else if err != nil {
-			log.Printf("[GetGroup Error]: %s\n", err)
-			span.Tag("warn", fmt.Sprintf("error retrieving group: %s", err))
+			log.Printf("[GetDevicesInGroup Error]: %s\n", err)
+			span.Tag("warn", fmt.Sprintf("error retrieving devices in groups: %s", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		if groupDevices == nil {
+			groupDevices = make([]string, 0)
+		}
+
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		if err := json.NewEncoder(w).Encode(user); err != nil {
+		if err := json.NewEncoder(w).Encode(groupDevices); err != nil {
 			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return

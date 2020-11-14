@@ -88,21 +88,6 @@ type Device struct {
 	EnrolledAt  time.Time          `json:"enrolled_at"`
 }
 
-type DeviceCache struct {
-	DeviceID    int32         `json:"device_id"`
-	PayloadID   sql.NullInt32 `json:"payload_id"`
-	InventoryID sql.NullInt32 `json:"inventory_id"`
-	CacheID     int32         `json:"cache_id"`
-}
-
-type DeviceInventory struct {
-	ID       int32  `json:"id"`
-	DeviceID int32  `json:"device_id"`
-	Uri      string `json:"uri"`
-	Format   string `json:"format"`
-	Value    string `json:"value"`
-}
-
 type Group struct {
 	ID          string         `json:"id"`
 	TenantID    string         `json:"tenant_id"`
@@ -116,18 +101,8 @@ type GroupDevice struct {
 }
 
 type GroupPolicy struct {
-	GroupID  sql.NullString `json:"group_id"`
-	PolicyID sql.NullString `json:"policy_id"`
-}
-
-type PoliciesPayload struct {
-	ID       int32         `json:"id"`
-	PolicyID sql.NullInt32 `json:"policy_id"`
-	Uri      string        `json:"uri"`
-	Format   string        `json:"format"`
-	Type     string        `json:"type"`
-	Value    string        `json:"value"`
-	Exec     bool          `json:"exec"`
+	GroupID  string `json:"group_id"`
+	PolicyID string `json:"policy_id"`
 }
 
 type Policy struct {
@@ -141,6 +116,8 @@ type Tenant struct {
 	ID            string         `json:"id"`
 	DisplayName   string         `json:"display_name"`
 	PrimaryDomain string         `json:"primary_domain"`
+	Email         sql.NullString `json:"email"`
+	Phone         sql.NullString `json:"phone"`
 	Description   sql.NullString `json:"description"`
 }
 
@@ -151,8 +128,9 @@ type TenantUser struct {
 }
 
 type User struct {
-	Upn        string         `json:"upn"`
+	UPN        string         `json:"upn"`
 	Fullname   string         `json:"fullname"`
+	Disabled   bool           `json:"disabled"`
 	Password   sql.NullString `json:"password"`
 	MfaToken   sql.NullString `json:"mfa_token"`
 	AzureadOid sql.NullString `json:"azuread_oid"`

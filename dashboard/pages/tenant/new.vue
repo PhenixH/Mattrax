@@ -50,7 +50,11 @@ export default Vue.extend({
         .then(() =>
           this.$router.push(
             this.$route.query?.redirect_to !== undefined
-              ? this.$route.query?.redirect_to
+              ? Array.isArray(this.$route.query.redirect_to)
+                ? this.$route.query.redirect_to[0] !== null
+                  ? this.$route.query.redirect_to[0]
+                  : '/'
+                : this.$route.query.redirect_to
               : '/'
           )
         )

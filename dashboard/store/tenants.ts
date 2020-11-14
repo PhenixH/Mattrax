@@ -35,6 +35,10 @@ export const mutations = {
   setTenants(state: State, tenants: Tenant[]) {
     state.tenants = tenants
   },
+
+  clearTenants(state: State) {
+    state.tenants = null
+  },
 }
 
 export const actions = {
@@ -86,7 +90,6 @@ export const actions = {
           }
 
           const data = await res.json()
-          console.log(data)
           context.commit('setTenants', data)
           resolve()
         })

@@ -27,6 +27,7 @@ func APIHeaders(srv *mattrax.Server) mux.MiddlewareFunc {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE") // TEMP: Bypass for another bug
 			}
 			w.Header().Set("X-XSS-Protection", "1; mode=block")
 			w.Header().Set("X-Content-Type-Options", "nosniff")

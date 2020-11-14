@@ -1,6 +1,8 @@
 package mattrax
 
 import (
+	"database/sql"
+
 	"github.com/gorilla/mux"
 	"github.com/mattrax/Mattrax/internal/authentication"
 	"github.com/mattrax/Mattrax/internal/certificates"
@@ -18,8 +20,9 @@ type Server struct {
 	GlobalRouter *mux.Router
 	Router       *mux.Router // Subrouter which is only accessible via secure origins (configured by admin)
 
-	DB    *db.Queries
-	Cache *cache.Cache
+	DB     *db.Queries
+	DBConn *sql.DB
+	Cache  *cache.Cache
 
 	Cert     *certificates.Service
 	Auth     *authentication.Service

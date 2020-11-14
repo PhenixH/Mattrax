@@ -130,4 +130,36 @@ export const actions = {
         })
     })
   },
+  patchDevice(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/device/' +
+          encodeURI(params.id),
+        {
+          method: 'PATCH',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify(params.patch),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(errorForStatus(res, 'Error patching device on server'))
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
 }

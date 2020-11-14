@@ -9,6 +9,7 @@ interface UserInformation {
   name?: string
   upn?: string
   aud?: string
+  exp?: number
 }
 
 interface State {
@@ -42,26 +43,31 @@ export const actions = {
     }
 
     try {
-      const base64Url = context.state.authToken.split('.')[1]
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-          })
-          .join('')
+      const claims = JSON.parse(
+        decodeURIComponent(
+          atob(
+            context.state.authToken
+              .split('.')[1]
+              .replace(/-/g, '+')
+              .replace(/_/g, '/')
+          )
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
       )
-      const claims = JSON.parse(jsonPayload)
 
       const userInfo: UserInformation = {
         name: claims.name,
         upn: claims.sub,
         aud: claims.aud,
+        exp: claims.exp,
       }
 
       context.commit('setUserInformation', userInfo)
-    } catch {}
+    } catch (err) {
+      console.error(err)
+    }
   },
 
   login(context: any, user: LoginRequest) {

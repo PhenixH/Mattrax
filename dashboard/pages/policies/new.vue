@@ -1,26 +1,25 @@
 <template>
   <div v-if="loading" class="loading">Creating Policy...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <BookIcon view-box="0 0 24 24" height="40" width="40" />Create New
-          Policy
-        </h1>
-      </div>
-      <div>
-        <form class="create-form" @submit.prevent="createPolicy">
-          <p class="field-title">Name:</p>
-          <input
-            v-model="policy.name"
-            type="text"
-            placeholder="Baseline Restrictions"
-            required
-          />
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/policies">Policies</NuxtLink></li>
+      </ul>
+      <h1>Create New Policy</h1>
+    </div>
+    <div class="page-body">
+      <form class="create-form" @submit.prevent="createPolicy">
+        <p class="field-title">Name:</p>
+        <input
+          v-model="policy.name"
+          type="text"
+          placeholder="Baseline Restrictions"
+          required
+        />
 
-          <button type="submit" class="submit">Create Policy</button>
-        </form>
-      </div>
+        <button type="submit" class="submit">Create Policy</button>
+      </form>
     </div>
   </div>
 </template>
@@ -51,7 +50,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .create-form {
   padding: 10px;
 }

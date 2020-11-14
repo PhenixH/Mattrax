@@ -83,4 +83,29 @@ export const actions = {
         })
     })
   },
+  patchUser(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(process.env.baseUrl + '/user/' + encodeURI(params.upn), {
+        method: 'PATCH',
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
+        }),
+        body: JSON.stringify(params.patch),
+      })
+        .then(async (res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(errorForStatus(res, 'Error patching user on server'))
+            return
+          }
+
+          const user = await res.json()
+          resolve(user.upn)
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
 }

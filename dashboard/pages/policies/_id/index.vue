@@ -1,19 +1,7 @@
 <template>
-  <div>
-    <TableView :headings="['Information']">
-      <tr>
-        <td>Name</td>
-        <td>{{ policy.name }}</td>
-      </tr>
-      <tr>
-        <td>Description</td>
-        <td>{{ policy.description }}</td>
-      </tr>
-      <tr>
-        <td>Managed Areas</td>
-        <!-- <td>{{ policy.payloads.join(', ') }}</td> -->
-      </tr>
-    </TableView>
+  <div ref="page" class="page-body">
+    <p class="field-title">Name:</p>
+    <input name="name" :value="policy.name" type="text" :disabled="!editting" />
   </div>
 </template>
 
@@ -26,8 +14,20 @@ export default Vue.extend({
       type: Object,
       required: true,
     },
+    editting: {
+      type: Boolean,
+      required: true,
+    },
+  },
+  mounted() {
+    // TODO: Remove need for ref with this or something
+    this.$refs.page
+      .querySelectorAll('input, select, checkbox, textarea')
+      .forEach((node: HTMLInputElement) => {
+        node.defaultValue = node.value
+      })
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>

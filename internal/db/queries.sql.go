@@ -6,7 +6,36 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
+
+const addDevicesToGroup = `-- name: AddDevicesToGroup :exec
+INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2)
+`
+
+type AddDevicesToGroupParams struct {
+	GroupID  string `json:"group_id"`
+	DeviceID string `json:"device_id"`
+}
+
+func (q *Queries) AddDevicesToGroup(ctx context.Context, arg AddDevicesToGroupParams) error {
+	_, err := q.exec(ctx, q.addDevicesToGroupStmt, addDevicesToGroup, arg.GroupID, arg.DeviceID)
+	return err
+}
+
+const addPoliciesToGroup = `-- name: AddPoliciesToGroup :exec
+INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2)
+`
+
+type AddPoliciesToGroupParams struct {
+	GroupID  string `json:"group_id"`
+	PolicyID string `json:"policy_id"`
+}
+
+func (q *Queries) AddPoliciesToGroup(ctx context.Context, arg AddPoliciesToGroupParams) error {
+	_, err := q.exec(ctx, q.addPoliciesToGroupStmt, addPoliciesToGroup, arg.GroupID, arg.PolicyID)
+	return err
+}
 
 const createRawCert = `-- name: CreateRawCert :exec
 INSERT INTO certificates(id, cert, key) VALUES ($1, $2, $3)
@@ -33,7 +62,7 @@ func (q *Queries) DeleteUser(ctx context.Context, upn string) error {
 }
 
 const getDevice = `-- name: GetDevice :one
-SELECT id, name, description, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1
+SELECT id, protocol, name, description, state, owner, azure_did, enrolled_at, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1
 `
 
 type GetDeviceParams struct {
@@ -42,10 +71,15 @@ type GetDeviceParams struct {
 }
 
 type GetDeviceRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Model       sql.NullString `json:"model"`
+	ID          string             `json:"id"`
+	Protocol    ManagementProtocol `json:"protocol"`
+	Name        string             `json:"name"`
+	Description sql.NullString     `json:"description"`
+	State       DeviceState        `json:"state"`
+	Owner       sql.NullString     `json:"owner"`
+	AzureDid    sql.NullString     `json:"azure_did"`
+	EnrolledAt  time.Time          `json:"enrolled_at"`
+	Model       sql.NullString     `json:"model"`
 }
 
 func (q *Queries) GetDevice(ctx context.Context, arg GetDeviceParams) (GetDeviceRow, error) {
@@ -53,8 +87,13 @@ func (q *Queries) GetDevice(ctx context.Context, arg GetDeviceParams) (GetDevice
 	var i GetDeviceRow
 	err := row.Scan(
 		&i.ID,
+		&i.Protocol,
 		&i.Name,
 		&i.Description,
+		&i.State,
+		&i.Owner,
+		&i.AzureDid,
+		&i.EnrolledAt,
 		&i.Model,
 	)
 	return i, err
@@ -100,7 +139,7 @@ type GetDevicePoliciesRow struct {
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
-	PolicyID    sql.NullString `json:"policy_id"`
+	PolicyID    string         `json:"policy_id"`
 	GroupID     string         `json:"group_id"`
 }
 
@@ -135,11 +174,10 @@ func (q *Queries) GetDevicePolicies(ctx context.Context, deviceID string) ([]Get
 
 const getDevices = `-- name: GetDevices :many
 
-SELECT id, name, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4
+SELECT id, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 `
 
 type GetDevicesParams struct {
-	ID       string `json:"id"`
 	TenantID string `json:"tenant_id"`
 	Limit    int32  `json:"limit"`
 	Offset   int32  `json:"offset"`
@@ -153,12 +191,7 @@ type GetDevicesRow struct {
 
 //------ Device Actions
 func (q *Queries) GetDevices(ctx context.Context, arg GetDevicesParams) ([]GetDevicesRow, error) {
-	rows, err := q.query(ctx, q.getDevicesStmt, getDevices,
-		arg.ID,
-		arg.TenantID,
-		arg.Limit,
-		arg.Offset,
-	)
+	rows, err := q.query(ctx, q.getDevicesStmt, getDevices, arg.TenantID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +203,39 @@ func (q *Queries) GetDevices(ctx context.Context, arg GetDevicesParams) ([]GetDe
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDevicesInGroup = `-- name: GetDevicesInGroup :many
+SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3
+`
+
+type GetDevicesInGroupParams struct {
+	GroupID string `json:"group_id"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
+}
+
+func (q *Queries) GetDevicesInGroup(ctx context.Context, arg GetDevicesInGroupParams) ([]string, error) {
+	rows, err := q.query(ctx, q.getDevicesInGroupStmt, getDevicesInGroup, arg.GroupID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var device_id string
+		if err := rows.Scan(&device_id); err != nil {
+			return nil, err
+		}
+		items = append(items, device_id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -280,6 +346,39 @@ func (q *Queries) GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]Get
 	return items, nil
 }
 
+const getPoliciesInGroup = `-- name: GetPoliciesInGroup :many
+SELECT policy_id FROM group_policies WHERE group_id = $1 LIMIT $2 OFFSET $3
+`
+
+type GetPoliciesInGroupParams struct {
+	GroupID string `json:"group_id"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
+}
+
+func (q *Queries) GetPoliciesInGroup(ctx context.Context, arg GetPoliciesInGroupParams) ([]string, error) {
+	rows, err := q.query(ctx, q.getPoliciesInGroupStmt, getPoliciesInGroup, arg.GroupID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var policy_id string
+		if err := rows.Scan(&policy_id); err != nil {
+			return nil, err
+		}
+		items = append(items, policy_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPolicy = `-- name: GetPolicy :one
 SELECT id, name, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1
 `
@@ -320,20 +419,53 @@ func (q *Queries) GetRawCert(ctx context.Context, id string) (GetRawCertRow, err
 	return i, err
 }
 
+const getTenant = `-- name: GetTenant :one
+
+
+SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1
+`
+
+type GetTenantRow struct {
+	DisplayName   string         `json:"display_name"`
+	PrimaryDomain string         `json:"primary_domain"`
+	Email         sql.NullString `json:"email"`
+	Phone         sql.NullString `json:"phone"`
+}
+
+// DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
+//------ Tenant
+func (q *Queries) GetTenant(ctx context.Context, id string) (GetTenantRow, error) {
+	row := q.queryRow(ctx, q.getTenantStmt, getTenant, id)
+	var i GetTenantRow
+	err := row.Scan(
+		&i.DisplayName,
+		&i.PrimaryDomain,
+		&i.Email,
+		&i.Phone,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
-SELECT upn, fullname, azuread_oid FROM users WHERE upn = $1 LIMIT 1
+SELECT upn, fullname, disabled, azuread_oid FROM users WHERE upn = $1 LIMIT 1
 `
 
 type GetUserRow struct {
-	Upn        string         `json:"upn"`
+	UPN        string         `json:"upn"`
 	Fullname   string         `json:"fullname"`
+	Disabled   bool           `json:"disabled"`
 	AzureadOid sql.NullString `json:"azuread_oid"`
 }
 
 func (q *Queries) GetUser(ctx context.Context, upn string) (GetUserRow, error) {
 	row := q.queryRow(ctx, q.getUserStmt, getUser, upn)
 	var i GetUserRow
-	err := row.Scan(&i.Upn, &i.Fullname, &i.AzureadOid)
+	err := row.Scan(
+		&i.UPN,
+		&i.Fullname,
+		&i.Disabled,
+		&i.AzureadOid,
+	)
 	return i, err
 }
 
@@ -380,15 +512,22 @@ const getUserTenants = `-- name: GetUserTenants :many
 SELECT id, display_name, primary_domain, description FROM tenants INNER JOIN tenant_users ON tenants.id = tenant_users.tenant_id WHERE tenant_users.user_upn = $1
 `
 
-func (q *Queries) GetUserTenants(ctx context.Context, userUpn string) ([]Tenant, error) {
+type GetUserTenantsRow struct {
+	ID            string         `json:"id"`
+	DisplayName   string         `json:"display_name"`
+	PrimaryDomain string         `json:"primary_domain"`
+	Description   sql.NullString `json:"description"`
+}
+
+func (q *Queries) GetUserTenants(ctx context.Context, userUpn string) ([]GetUserTenantsRow, error) {
 	rows, err := q.query(ctx, q.getUserTenantsStmt, getUserTenants, userUpn)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Tenant
+	var items []GetUserTenantsRow
 	for rows.Next() {
-		var i Tenant
+		var i GetUserTenantsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DisplayName,
@@ -419,7 +558,7 @@ type GetUsersInTenantParams struct {
 }
 
 type GetUsersInTenantRow struct {
-	Upn        string         `json:"upn"`
+	UPN        string         `json:"upn"`
 	Fullname   string         `json:"fullname"`
 	AzureadOid sql.NullString `json:"azuread_oid"`
 }
@@ -433,7 +572,7 @@ func (q *Queries) GetUsersInTenant(ctx context.Context, arg GetUsersInTenantPara
 	var items []GetUsersInTenantRow
 	for rows.Next() {
 		var i GetUsersInTenantRow
-		if err := rows.Scan(&i.Upn, &i.Fullname, &i.AzureadOid); err != nil {
+		if err := rows.Scan(&i.UPN, &i.Fullname, &i.AzureadOid); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -456,11 +595,11 @@ type GetUsersInTenantByQueryParams struct {
 	TenantID sql.NullString `json:"tenant_id"`
 	Limit    int32          `json:"limit"`
 	Offset   int32          `json:"offset"`
-	Upn      string         `json:"upn"`
+	UPN      string         `json:"upn"`
 }
 
 type GetUsersInTenantByQueryRow struct {
-	Upn        string         `json:"upn"`
+	UPN        string         `json:"upn"`
 	Fullname   string         `json:"fullname"`
 	AzureadOid sql.NullString `json:"azuread_oid"`
 }
@@ -471,7 +610,7 @@ func (q *Queries) GetUsersInTenantByQuery(ctx context.Context, arg GetUsersInTen
 		arg.TenantID,
 		arg.Limit,
 		arg.Offset,
-		arg.Upn,
+		arg.UPN,
 	)
 	if err != nil {
 		return nil, err
@@ -480,7 +619,7 @@ func (q *Queries) GetUsersInTenantByQuery(ctx context.Context, arg GetUsersInTen
 	var items []GetUsersInTenantByQueryRow
 	for rows.Next() {
 		var i GetUsersInTenantByQueryRow
-		if err := rows.Scan(&i.Upn, &i.Fullname, &i.AzureadOid); err != nil {
+		if err := rows.Scan(&i.UPN, &i.Fullname, &i.AzureadOid); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -548,22 +687,20 @@ func (q *Queries) NewTenant(ctx context.Context, arg NewTenantParams) (string, e
 
 const newUser = `-- name: NewUser :exec
 
-
 INSERT INTO users(upn, fullname, password, tenant_id) VALUES ($1, $2, $3, $4)
 `
 
 type NewUserParams struct {
-	Upn      string         `json:"upn"`
+	UPN      string         `json:"upn"`
 	Fullname string         `json:"fullname"`
 	Password sql.NullString `json:"password"`
 	TenantID sql.NullString `json:"tenant_id"`
 }
 
-// DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
-//------ User & Tenant
+//------ User
 func (q *Queries) NewUser(ctx context.Context, arg NewUserParams) error {
 	_, err := q.exec(ctx, q.newUserStmt, newUser,
-		arg.Upn,
+		arg.UPN,
 		arg.Fullname,
 		arg.Password,
 		arg.TenantID,
@@ -576,13 +713,13 @@ INSERT INTO users(upn, fullname, azuread_oid) VALUES ($1, $2, $3)
 `
 
 type NewUserFromAzureADParams struct {
-	Upn        string         `json:"upn"`
+	UPN        string         `json:"upn"`
 	Fullname   string         `json:"fullname"`
 	AzureadOid sql.NullString `json:"azuread_oid"`
 }
 
 func (q *Queries) NewUserFromAzureAD(ctx context.Context, arg NewUserFromAzureADParams) error {
-	_, err := q.exec(ctx, q.newUserFromAzureADStmt, newUserFromAzureAD, arg.Upn, arg.Fullname, arg.AzureadOid)
+	_, err := q.exec(ctx, q.newUserFromAzureADStmt, newUserFromAzureAD, arg.UPN, arg.Fullname, arg.AzureadOid)
 	return err
 }
 

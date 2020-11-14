@@ -1,12 +1,17 @@
 -- DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
 
--------- User & Tenant
+-------- Tenant
+
+-- name: GetTenant :one
+SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1;
+
+-------- User
 
 -- name: NewUser :exec
 INSERT INTO users(upn, fullname, password, tenant_id) VALUES ($1, $2, $3, $4);
 
 -- name: GetUser :one
-SELECT upn, fullname, azuread_oid FROM users WHERE upn = $1 LIMIT 1;
+SELECT upn, fullname, disabled, azuread_oid FROM users WHERE upn = $1 LIMIT 1;
 
 -- name: GetUsersInTenant :many
 SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
@@ -50,6 +55,18 @@ SELECT id, name, description FROM groups WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 -- name: GetGroup :one
 SELECT id, name, description FROM groups WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
+-- name: GetDevicesInGroup :many
+SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3;
+
+-- name: AddDevicesToGroup :exec
+INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2);
+
+-- name: GetPoliciesInGroup :many
+SELECT policy_id FROM group_policies WHERE group_id = $1 LIMIT $2 OFFSET $3;
+
+-- name: AddPoliciesToGroup :exec
+INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2);
+
 -------- Policy Actions
 
 -- name: NewPolicy :one
@@ -64,10 +81,10 @@ SELECT id, name, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMI
 -------- Device Actions
 
 -- name: GetDevices :many
-SELECT id, name, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4;
+SELECT id, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetDevice :one
-SELECT id, name, description, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+SELECT id, protocol, name, description, state, owner, azure_did, enrolled_at, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
 -- name: GetDeviceGroups :many
 SELECT groups.id, groups.name FROM groups INNER JOIN group_devices ON group_devices.group_id=groups.id WHERE group_devices.device_id = $1;

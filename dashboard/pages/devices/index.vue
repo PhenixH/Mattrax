@@ -1,35 +1,42 @@
 <template>
   <div v-if="loading" class="loading">Loading Devices...</div>
   <div v-else>
-    <h1>Devices</h1>
-    <div class="filter-panel">
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+      </ul>
+      <h1>Devices</h1>
+    </div>
+    <div class="page-nav">
       <button @click="$router.push('/enroll')">Enroll Device</button>
       <input type="text" placeholder="Search..." disabled />
     </div>
-    <TableView :headings="['Name', 'Owner', 'Model', 'Groups']">
-      <tr v-for="device in devices" :key="device.id">
-        <td>
-          <NuxtLink :to="'/devices/' + device.id" exact>{{
-            device.name
-          }}</NuxtLink>
-        </td>
-        <td>
-          <NuxtLink :to="'/users/' + device.owner" exact>{{
-            device.owner
-          }}</NuxtLink>
-        </td>
-        <td>{{ device.model }}</td>
-        <td>
-          <NuxtLink
-            v-for="group in device.groups"
-            :key="group.id"
-            :to="'/groups/' + group.id"
-            class="group-list"
-            >{{ group.name }}</NuxtLink
-          >
-        </td>
-      </tr>
-    </TableView>
+    <div class="page-body">
+      <TableView :headings="['Name', 'Owner', 'Model', 'Groups']">
+        <tr v-for="device in devices" :key="device.id">
+          <td>
+            <NuxtLink :to="'/devices/' + device.id" exact>{{
+              device.name
+            }}</NuxtLink>
+          </td>
+          <td>
+            <NuxtLink :to="'/users/' + device.owner" exact>{{
+              device.owner
+            }}</NuxtLink>
+          </td>
+          <td>{{ device.model }}</td>
+          <td>
+            <NuxtLink
+              v-for="group in device.groups"
+              :key="group.id"
+              :to="'/groups/' + group.id"
+              class="group-list"
+              >{{ group.name }}</NuxtLink
+            >
+          </td>
+        </tr>
+      </TableView>
+    </div>
   </div>
 </template>
 
@@ -56,4 +63,4 @@ export default Vue.extend({
 })
 </script>
 
-<style></style>
+<style scoped></style>

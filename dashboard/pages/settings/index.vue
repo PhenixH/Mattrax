@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="page-body">
     <h1>General Settings</h1>
   </div>
 </template>
@@ -10,4 +10,4 @@ import Vue from 'vue'
 export default Vue.extend({})
 </script>
 
-<style></style>
+<style scoped></style>

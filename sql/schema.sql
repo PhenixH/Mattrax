@@ -11,12 +11,15 @@ CREATE TABLE tenants (
 	id TEXT PRIMARY KEY DEFAULT short_uuid(),
     display_name TEXT NOT NULL,
     primary_domain TEXT UNIQUE NOT NULL,
+    email TEXT,
+    phone TEXT,
     description TEXT
 );
 
 CREATE TABLE users (
     upn TEXT PRIMARY KEY,
     fullname TEXT NOT NULL,
+    disabled BOOLEAN NOT NULL DEFAULT False,
     password TEXT,
     mfa_token TEXT,
     azuread_oid TEXT UNIQUE,
@@ -71,8 +74,8 @@ CREATE TABLE group_devices (
 );
 
 CREATE TABLE group_policies (
-    group_id TEXT REFERENCES groups(id),
-    policy_id TEXT REFERENCES policies(id),
+    group_id TEXT REFERENCES groups(id) NOT NULL,
+    policy_id TEXT REFERENCES policies(id) NOT NULL,
     PRIMARY KEY (group_id, policy_id)
 );
 

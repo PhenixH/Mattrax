@@ -20,8 +20,8 @@ func Login(srv *mattrax.Server) http.HandlerFunc {
 	}
 
 	type Response struct {
-		Token   string      `json:"token"`
-		Tenants []db.Tenant `json:"tenants,notnull"`
+		Token   string                 `json:"token"`
+		Tenants []db.GetUserTenantsRow `json:"tenants,notnull"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +87,7 @@ func Login(srv *mattrax.Server) http.HandlerFunc {
 		}
 
 		if tenants == nil {
-			tenants = make([]db.Tenant, 0)
+			tenants = make([]db.GetUserTenantsRow, 0)
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")

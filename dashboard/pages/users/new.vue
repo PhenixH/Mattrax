@@ -1,13 +1,14 @@
 <template>
   <div v-if="loading" class="loading">Creating User...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <UserIcon view-box="0 0 24 24" height="40" width="40" />Create New
-          User
-        </h1>
-      </div>
+    <div class="page-head">
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/users">Users</NuxtLink></li>
+      </ul>
+      <h1>Create New User</h1>
+    </div>
+    <div class="page-body">
       <div>
         <form class="create-form" @submit.prevent="createUser">
           <p class="field-title">Name:</p>
@@ -76,7 +77,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .create-form {
   padding: 10px;
 }

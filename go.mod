@@ -15,6 +15,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.20.0
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	github.com/webview/webview v0.0.0-20200724072439-e0c01595b361
+	golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9
 	gopkg.in/square/go-jose.v2 v2.5.1
 )
