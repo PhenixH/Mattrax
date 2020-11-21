@@ -1,7 +1,12 @@
 <template>
-  <div ref="page" class="page-body">
+  <div class="page-body">
     <p class="field-title">Name:</p>
-    <input name="name" :value="group.name" type="text" :disabled="!editting" />
+    <input
+      name="name"
+      :value="group.name"
+      type="text"
+      :disabled="!$store.state.dashboard.editting"
+    />
 
     <p class="field-title">Scope:</p>
     <TableView :headings="['Scoped Policies']">
@@ -35,25 +40,25 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import resource from '@/mixins/resource'
 
 export default Vue.extend({
+  mixins: [resource],
   props: {
     group: {
       type: Object,
       required: true,
     },
-    editting: {
-      type: Boolean,
-      required: true,
-    },
   },
-  mounted() {
-    // TODO: Remove need for ref with this or something
-    this.$refs.page
-      .querySelectorAll('input, select, checkbox, textarea')
-      .forEach((node: HTMLInputElement) => {
-        node.defaultValue = node.value
+  methods: {
+    async save(patch: object) {
+      await this.$store.dispatch('groups/patchGroup', {
+        id: this.$route.params.id,
+        patch,
       })
+
+      Object.keys(patch).forEach((key) => (this.group[key] = patch[key]))
+    },
   },
 })
 </script>

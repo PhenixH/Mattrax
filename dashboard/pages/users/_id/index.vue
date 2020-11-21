@@ -6,18 +6,23 @@
       name="fullname"
       :value="user.fullname"
       type="text"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     />
 
     <p class="field-title">User Principal Name:</p>
-    <input name="upn" :value="user.upn" type="email" :disabled="!editting" />
+    <input
+      name="upn"
+      :value="user.upn"
+      type="email"
+      :disabled="!$store.state.dashboard.editting"
+    />
 
     <p class="field-title">Status:</p>
     <select
       name="disabled"
       data-type="bool"
       :value="user.disabled"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     >
       <option value="false">Enabled</option>
       <option value="true">Disabled</option>
@@ -37,25 +42,29 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import resource from '@/mixins/resource'
 
 export default Vue.extend({
+  mixins: [resource],
   props: {
     user: {
       type: Object,
       required: true,
     },
-    editting: {
-      type: Boolean,
-      required: true,
-    },
   },
-  mounted() {
-    // TODO: Remove need for ref with this or something
-    (<Element>this.$refs.page)
-      .querySelectorAll('input, select, checkbox, textarea')
-      .forEach((node: any) => {
-        node.defaultValue = node.value
+  methods: {
+    async save(patch: object) {
+      const upn = await this.$store.dispatch('users/patchUser', {
+        upn: this.$route.params.id,
+        patch,
       })
+
+      if (upn !== this.$route.params.id) {
+        this.$router.push('/users/' + upn)
+      } else {
+        Object.keys(patch).forEach((key) => (this.user[key] = patch[key]))
+      }
+    },
   },
 })
 </script>

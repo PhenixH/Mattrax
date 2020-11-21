@@ -1,14 +1,14 @@
 <template>
   <div v-if="loading" class="loading">Loading Group...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
         <li><NuxtLink to="/groups">Groups</NuxtLink></li>
       </ul>
       <h1>{{ group.name }}</h1>
-    </div>
-    <div class="page-nav">
+    </PageHead>
+    <PageNav>
       <button
         :class="{
           active:
@@ -19,13 +19,8 @@
       >
         Overview
       </button>
-    </div>
-    <NuxtChild :group="group" :editting="editting" />
-    <div class="page-footer">
-      <button @click="editting ? save() : (editting = true)">
-        {{ editting ? 'Save' : 'Edit' }}
-      </button>
-    </div>
+    </PageNav>
+    <NuxtChild ref="body" :group="group" />
   </div>
 </template>
 
@@ -37,11 +32,11 @@ export default Vue.extend({
   data() {
     return {
       loading: true,
-      editting: false,
       group: {},
     }
   },
   created() {
+    this.$store.commit('dashboard/setDeletable', true)
     this.$store
       .dispatch('groups/getByID', this.$route.params.id)
       .then((group) => {
@@ -54,37 +49,9 @@ export default Vue.extend({
     navigate(pathSuffix: string) {
       this.$router.push('/groups/' + this.$route.params.id + pathSuffix)
     },
-    save() {
-      if (this.editting === false) return
-
-      let patch = null
-      this.$children[2].$el
-        .querySelectorAll('input, select, checkbox, textarea')
-        .forEach((node) => {
-          if (node.value !== node.defaultValue) {
-            if (patch === null) patch = {}
-            if (node.getAttribute('data-type') === 'bool') {
-              patch[node.name] = node.value === 'true'
-            } else {
-              patch[node.name] = node.value
-            }
-          }
-        })
-      if (patch === null) {
-        this.editting = false
-        return
-      }
-
-      this.$store
-        .dispatch('groups/patchGroup', {
-          id: this.$route.params.id,
-          patch,
-        })
-        .then(() => {
-          Object.keys(patch).forEach((key) => (this.group[key] = patch[key]))
-          this.editting = false
-        })
-        .catch((err) => this.$store.commit('dashboard/setError', err)) // TODO: Warning that saving failed
+    async delete(): Promise<string> {
+      await this.$store.dispatch('groups/deleteGroup', this.$route.params.id)
+      return '/groups'
     },
   },
 })

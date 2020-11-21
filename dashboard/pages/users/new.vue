@@ -1,13 +1,13 @@
 <template>
   <div v-if="loading" class="loading">Creating User...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
         <li><NuxtLink to="/users">Users</NuxtLink></li>
       </ul>
       <h1>Create New User</h1>
-    </div>
+    </PageHead>
     <div class="page-body">
       <div>
         <form class="create-form" @submit.prevent="createUser">

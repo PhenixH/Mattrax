@@ -7,8 +7,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/lib/pq"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
+	"github.com/mattrax/Mattrax/pkg/null"
 	"github.com/openzipkin/zipkin-go"
 	"golang.org/x/crypto/bcrypt"
 
@@ -24,6 +26,7 @@ func Users(srv *mattrax.Server) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
@@ -37,8 +40,8 @@ func Users(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("limit", fmt.Sprintf("%v", limit))
 			span.Tag("offset", fmt.Sprintf("%v", offset))
 
-			users, err := srv.DB.GetUsersInTenant(r.Context(), db.GetUsersInTenantParams{
-				TenantID: sql.NullString{
+			users, err := srv.DB.WithTx(tx).GetUsersInTenant(r.Context(), db.GetUsersInTenantParams{
+				TenantID: null.String{
 					String: vars["tenant"],
 					Valid:  true,
 				},
@@ -82,18 +85,24 @@ func Users(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			if err := srv.DB.NewUser(r.Context(), db.NewUserParams{
+			if err := srv.DB.WithTx(tx).NewUser(r.Context(), db.NewUserParams{
 				UPN:      cmd.UPN,
 				Fullname: cmd.FullName,
-				Password: sql.NullString{
+				Password: null.String{
 					String: string(passwordHash),
 					Valid:  true,
 				},
-				TenantID: sql.NullString{
+				TenantID: null.String{
 					String: vars["tenant"],
 					Valid:  vars["tenant"] != "",
 				},
 			}); err != nil {
+				if pqe, ok := err.(*pq.Error); ok && string(pqe.Code) == "23505" {
+					span.Tag("warn", fmt.Sprintf("error creating new user due to unique constraint violation: %s", err))
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
+				}
+
 				log.Printf("[CreateUser Error]: %s\n", err)
 				span.Tag("err", fmt.Sprintf("error creating new user: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -119,11 +128,12 @@ func User(srv *mattrax.Server) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
 		if r.Method == http.MethodGet {
-			user, err := srv.DB.GetUser(r.Context(), vars["upn"])
+			user, err := srv.DB.WithTx(tx).GetUser(r.Context(), vars["upn"])
 			if err == sql.ErrNoRows {
 				span.Tag("warn", "user not found")
 				w.WriteHeader(http.StatusNotFound)
@@ -154,7 +164,7 @@ func User(srv *mattrax.Server) http.HandlerFunc {
 
 			var upn string
 			query := `UPDATE users SET upn=COALESCE(NULLIF($2, ''), upn), fullname=COALESCE(NULLIF($3, ''), fullname), password=COALESCE(NULLIF($4, ''), password), disabled=COALESCE($5, disabled) WHERE upn = $1 RETURNING upn;`
-			err := srv.DBConn.QueryRow(query, vars["upn"], cmd.UPN, cmd.Fullname, cmd.Password, cmd.Disabled).Scan(&upn)
+			err := tx.QueryRow(query, vars["upn"], cmd.UPN, cmd.Fullname, cmd.Password, cmd.Disabled).Scan(&upn)
 			if err == sql.ErrNoRows {
 				span.Tag("warn", "user not found")
 				w.WriteHeader(http.StatusNotFound)
@@ -174,6 +184,27 @@ func User(srv *mattrax.Server) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+		} else if r.Method == http.MethodDelete {
+			fmt.Println(vars["upn"], vars["tenant"])
+			err := srv.DB.WithTx(tx).DeleteUserInTenant(r.Context(), db.DeleteUserInTenantParams{
+				UPN: vars["upn"],
+				TenantID: null.String{
+					Valid:  true,
+					String: vars["tenant"],
+				},
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "user not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[DeleteUser Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error deleting user: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		}
 	}
 }

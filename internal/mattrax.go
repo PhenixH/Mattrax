@@ -11,8 +11,14 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-// Version is contains the build information. It is injected at build time
-const Version = "v0.0.0-dev Commit: xxxxxx"
+// Version contains the builds version. It is injected at build time
+const Version = "v0.0.0-dev"
+
+// VersionCommit contains the Git commit it of the build. It is injected at build time
+const VersionCommit = "xxxxxx"
+
+// VersionDate contains the time of the build. It is injected at build time
+const VersionDate = "2020.11.12 00:00:00AM"
 
 // Server contains the global server state
 type Server struct {

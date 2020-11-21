@@ -1,16 +1,16 @@
 <template>
   <div v-if="loading" class="loading">Loading Groups...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
       </ul>
       <h1>Groups</h1>
-    </div>
-    <div class="page-nav">
+    </PageHead>
+    <PageNav>
       <button @click="$router.push('/groups/new')">Create New Group</button>
       <input type="text" placeholder="Search..." disabled />
-    </div>
+    </PageNav>
     <div class="page-body">
       <TableView :headings="['Name']">
         <tr v-for="group in groups" :key="group.id">

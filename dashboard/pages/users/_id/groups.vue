@@ -28,6 +28,7 @@ export default Vue.extend({
   },
   data() {
     return {
+      // TODO: Get from API
       groups: [
         {
           id: '9xBb3sxf',

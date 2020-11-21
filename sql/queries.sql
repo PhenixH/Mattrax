@@ -5,6 +5,21 @@
 -- name: GetTenant :one
 SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1;
 
+-- name: GetTenantDomains :many
+SELECT domain, linking_code, verified FROM tenant_domains WHERE tenant_id = $1;
+
+-- name: GetTenantDomain :one
+SELECT linking_code, verified FROM tenant_domains WHERE domain=$1 AND tenant_id=$2 LIMIT 1;
+
+-- name: AddDomainToTenant :one
+INSERT INTO tenant_domains(tenant_id, domain) VALUES ($1, $2) RETURNING linking_code;
+
+-- name: UpdateDomain :exec
+UPDATE tenant_domains SET verified=$3 WHERE domain=$1 AND tenant_id=$2;
+
+-- name: DeleteDomain :exec
+DELETE FROM tenant_domains WHERE domain=$1 AND tenant_id=$2;
+
 -------- User
 
 -- name: NewUser :exec
@@ -25,6 +40,9 @@ SELECT fullname, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE upn=$1;
+
+-- name: DeleteUserInTenant :exec
+DELETE FROM users WHERE upn=$1 AND tenant_id=$2;
 
 -- name: NewUserFromAzureAD :exec
 INSERT INTO users(upn, fullname, azuread_oid) VALUES ($1, $2, $3);
@@ -55,6 +73,9 @@ SELECT id, name, description FROM groups WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 -- name: GetGroup :one
 SELECT id, name, description FROM groups WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
+-- name: DeleteGroup :exec
+DELETE FROM groups WHERE id = $1 AND tenant_id = $2;
+
 -- name: GetDevicesInGroup :many
 SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3;
 
@@ -77,6 +98,9 @@ SELECT id, name, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET 
 
 -- name: GetPolicy :one
 SELECT id, name, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: DeletePolicy :exec
+DELETE FROM policies WHERE id = $1 AND tenant_id = $2;
 
 -------- Device Actions
 

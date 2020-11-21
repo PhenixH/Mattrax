@@ -2,31 +2,45 @@
   <aside :class="{ sidebar: true, icons: !$store.state.dashboard.menuActive }">
     <NuxtLink to="/" exact>
       <HomeIcon />
-      <span v-if="$store.state.dashboard.menuActive">Dashboard</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Dashboard</span>
+      </transition>
     </NuxtLink>
     <NuxtLink to="/devices" exact>
       <PhoneIcon />
-      <span v-if="$store.state.dashboard.menuActive">Devices</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Devices</span>
+      </transition>
     </NuxtLink>
     <NuxtLink to="/users" exact>
       <UserIcon />
-      <span v-if="$store.state.dashboard.menuActive">Users</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Users</span>
+      </transition>
     </NuxtLink>
     <NuxtLink to="/policies" exact>
       <BookIcon />
-      <span v-if="$store.state.dashboard.menuActive">Policies</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Policies</span>
+      </transition>
     </NuxtLink>
     <NuxtLink to="/groups" exact>
       <GridIcon />
-      <span v-if="$store.state.dashboard.menuActive">Groups</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Groups</span>
+      </transition>
     </NuxtLink>
     <!-- <NuxtLink to="/reporting" exact>
       <DatabaseIcon />
+      <transition name="slide-fade">
       <span v-if="$store.state.dashboard.menuActive">Reporting</span>
+      </transition>
     </NuxtLink> -->
     <NuxtLink to="/settings" exact>
       <CogIcon />
-      <span v-if="$store.state.dashboard.menuActive">Settings</span>
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Settings</span>
+      </transition>
     </NuxtLink>
   </aside>
 </template>
@@ -70,5 +84,13 @@ export default {}
 .sidebar a span {
   padding-left: 8px;
   vertical-align: middle;
+}
+
+.slide-fade-enter-active {
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+.slide-fade-leave-active {
+  transition: opacity 0.1s;
 }
 </style>

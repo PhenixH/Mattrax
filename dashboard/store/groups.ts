@@ -158,4 +158,35 @@ export const actions = {
         })
     })
   },
+  deleteGroup(context: any, id: string) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(id),
+        {
+          method: 'DELETE',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(errorForStatus(res, 'Error deleting group on server'))
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
 }

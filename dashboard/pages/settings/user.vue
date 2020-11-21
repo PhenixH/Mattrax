@@ -1,35 +1,25 @@
 <template>
-  <div class="page-body">
-    <h2>Tenant Details</h2>
+  <div ref="page" class="page-body">
+    <h2>User Details</h2>
     <p class="field-title">Full Name:</p>
     <input
       name="fullname"
       :value="user_settings.fullname"
-      :test="user_settings.fullname"
       type="text"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     />
 
     <p class="field-title">Azure AD OID:</p>
-    <input
-      :value="user_settings.azuread_oid"
-      :test="user_settings.azuread_oid"
-      type="azuread_oid"
-      :disabled="!editting"
-    />
+    <input :value="user_settings.azuread_oid" type="azuread_oid" disabled />
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
+import resource from '@/mixins/resource'
 
 export default Vue.extend({
-  props: {
-    editting: {
-      type: Boolean,
-      required: true,
-    },
-  },
+  mixins: [resource],
   data() {
     return {
       user_settings: {},

@@ -17,6 +17,7 @@
         v-model="tenant.primary_domain"
         required
         type="text"
+        pattern="(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
         placeholder="acme.otbeaumont.me"
         @input="errorTxt = null"
       />

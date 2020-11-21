@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
@@ -24,6 +25,7 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
@@ -36,7 +38,7 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("limit", fmt.Sprintf("%v", limit))
 			span.Tag("offset", fmt.Sprintf("%v", offset))
 
-			policies, err := srv.DB.GetPolicies(r.Context(), db.GetPoliciesParams{
+			policies, err := srv.DB.WithTx(tx).GetPolicies(r.Context(), db.GetPoliciesParams{
 				TenantID: vars["tenant"],
 				Limit:    limit,
 				Offset:   offset,
@@ -77,11 +79,17 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			policyID, err := srv.DB.NewPolicy(r.Context(), db.NewPolicyParams{
+			policyID, err := srv.DB.WithTx(tx).NewPolicy(r.Context(), db.NewPolicyParams{
 				Name:     cmd.Name,
 				TenantID: vars["tenant"],
 			})
 			if err != nil {
+				if pqe, ok := err.(*pq.Error); ok && string(pqe.Code) == "23505" {
+					span.Tag("warn", fmt.Sprintf("error creating new user due to unique constraint violation: %s", err))
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
+				}
+
 				log.Printf("[NewPolicy Error]: %s\n", err)
 				span.Tag("err", fmt.Sprintf("error creating new policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -102,10 +110,12 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 
 func Policy(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
+
 		if r.Method == http.MethodGet {
-			user, err := srv.DB.GetPolicy(r.Context(), db.GetPolicyParams{
+			user, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
 				ID:       vars["pid"],
 				TenantID: vars["tenant"],
 			})
@@ -136,13 +146,30 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			query := `UPDATE policies SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
-			if _, err := srv.DBConn.Exec(query, vars["pid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+			if _, err := tx.Exec(query, vars["pid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
 				span.Tag("warn", "policy not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
 			} else if err != nil {
 				log.Printf("[UpdatePolicy Error]: %s\n", err)
 				span.Tag("err", fmt.Sprintf("error updating policy: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		} else if r.Method == http.MethodDelete {
+			err := srv.DB.WithTx(tx).DeletePolicy(r.Context(), db.DeletePolicyParams{
+				ID:       vars["pid"],
+				TenantID: vars["tenant"],
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "policy not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[DeletePolicy Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error deleting policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

@@ -1,4 +1,7 @@
+-- Note: The lines to enable the Audit Log triggers are disabled due to being unsupported by the sqlc Postrges parser! You MUST enable them.
+
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS hstore;
 
 -- Note: This function will have collisions after huge amounts of entities are created. For now this is fine but in future will need to be fixed.
 CREATE OR REPLACE FUNCTION short_uuid() RETURNS TEXT AS $$
@@ -10,10 +13,18 @@ $$ language 'plpgsql';
 CREATE TABLE tenants (
 	id TEXT PRIMARY KEY DEFAULT short_uuid(),
     display_name TEXT NOT NULL,
-    primary_domain TEXT UNIQUE NOT NULL,
+    primary_domain TEXT UNIQUE NOT NULL, -- TODO: REFERENCES
     email TEXT,
     phone TEXT,
     description TEXT
+);
+
+CREATE TABLE tenant_domains (
+    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
+    domain TEXT NOT NULL UNIQUE,
+    linking_code TEXT NOT NULL DEFAULT CAST(FLOOR(random()*100000000) as int),
+    verified BOOLEAN NOT NULL DEFAULT False,
+    PRIMARY KEY (tenant_id, domain)
 );
 
 CREATE TABLE users (
@@ -23,7 +34,8 @@ CREATE TABLE users (
     password TEXT,
     mfa_token TEXT,
     azuread_oid TEXT UNIQUE,
-    tenant_id TEXT REFERENCES tenants(id)
+    tenant_id TEXT REFERENCES tenants(id),
+    UNIQUE (fullname, tenant_id)
 );
 
 CREATE TYPE user_permission_level AS ENUM ('user', 'administrator');
@@ -34,6 +46,47 @@ CREATE TABLE tenant_users (
     permission_level user_permission_level NOT NULL DEFAULT 'user',
     PRIMARY KEY (user_upn, tenant_id)
 );
+
+CREATE TYPE operation AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+
+CREATE TABLE event_log (
+    event_id SERIAL PRIMARY KEY,
+    table_name TEXT NOT NULL,
+    resource_id TEXT,
+    tenant_id TEXT REFERENCES tenants(id),
+    user_upn TEXT, -- TEMP: REFERENCES users(upn),
+    time TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    operation operation NOT NULL,
+    existing_value jsonb
+);
+
+CREATE OR REPLACE FUNCTION audit_trigger_func()
+RETURNS trigger AS $body$
+DECLARE
+    jsonNEW jsonb := to_jsonb(NEW);
+    jsonOLD jsonb := to_jsonb(OLD);
+BEGIN
+    if (TG_OP = 'INSERT') then
+        INSERT INTO event_log (table_name, operation, resource_id, tenant_id, user_upn, existing_value) VALUES(TG_TABLE_NAME, 'INSERT', COALESCE(jsonNEW->>'id', jsonNEW->>'upn'), jsonNEW->>'tenant_id', NULLIF(current_setting('mattrax.upn'), 'NULL'), to_jsonb(NEW));
+        RETURN NEW;
+   elsif (TG_OP = 'UPDATE') then
+        INSERT INTO event_log (table_name, operation, resource_id, tenant_id, user_upn, existing_value)
+            SELECT TG_TABLE_NAME, 'UPDATE', COALESCE(jsonOLD->>'id', jsonOLD->>'upn'), jsonOLD->>'tenant_id', NULLIF(current_setting('mattrax.upn'), 'NULL'), json_agg(json_build_object(o.key, o.value))
+                FROM jsonb_each_text(jsonOLD) o
+                JOIN jsonb_each_text(jsonNEW) n USING (key)
+                WHERE n.value IS DISTINCT FROM o.value;
+        RETURN NEW;
+   elsif (TG_OP = 'DELETE') then
+        INSERT INTO event_log (table_name, operation, resource_id, tenant_id, user_upn, existing_value) VALUES(TG_TABLE_NAME, 'DELETE', COALESCE(jsonOLD->>'id', jsonOLD->>'upn'), jsonOLD->>'tenant_id', NULLIF(current_setting('mattrax.upn'), 'NULL'), jsonOLD);
+        RETURN OLD;
+   end if;
+END;
+$body$
+LANGUAGE plpgsql;
+
+-- CREATE TRIGGER tenants_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON tenants FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+-- CREATE TRIGGER tenant_domains_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON tenant_domains FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+-- CREATE TRIGGER users_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON users FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 CREATE TYPE management_protocol AS ENUM ('windows', 'agent', 'apple');
 CREATE TYPE device_state AS ENUM ('deploying', 'managed', 'user_unenrolled', 'missing');
@@ -53,12 +106,17 @@ CREATE TABLE devices (
     UNIQUE(protocol, udid)
 );
 
+-- CREATE TRIGGER devices_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON devices FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
 CREATE TABLE policies (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),
     tenant_id TEXT REFERENCES tenants(id) NOT NULL,
-    name TEXT UNIQUE NOT NULL,
-    description TEXT
+    name TEXT NOT NULL,
+    description TEXT,
+    UNIQUE (tenant_id, name)
 );
+
+-- CREATE TRIGGER policies_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON policies FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 CREATE TABLE groups (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),
@@ -66,6 +124,8 @@ CREATE TABLE groups (
     name TEXT UNIQUE NOT NULL,
     description TEXT
 );
+
+-- CREATE TRIGGER groups_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON groups FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 CREATE TABLE group_devices (
     group_id TEXT REFERENCES groups(id) NOT NULL,
@@ -84,3 +144,5 @@ CREATE TABLE certificates (
     cert BYTEA,
     key BYTEA
 );
+
+-- CREATE TRIGGER certificates_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON certificates FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();

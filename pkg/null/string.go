@@ -2,6 +2,7 @@ package null
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 )
 
@@ -22,4 +23,11 @@ func (ns *String) Scan(value interface{}) error {
 	ns.Valid = true
 	ns.String = value.(string)
 	return nil
+}
+
+func (ns String) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.String, nil
 }

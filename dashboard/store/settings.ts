@@ -114,4 +114,30 @@ export const actions = {
         })
     })
   },
+  getOverview(context: any) {
+    return new Promise((resolve, reject) => {
+      fetch(process.env.baseUrl + '/settings', {
+        headers: new Headers({
+          Authorization: 'Bearer ' + context.rootState.authentication.authToken,
+        }),
+      })
+        .then(async (res) => {
+          if (res.status !== 200) {
+            reject(
+              errorForStatus(
+                res,
+                'Error fetching overview settings from server'
+              )
+            )
+            return
+          }
+
+          resolve(await res.json())
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
 }

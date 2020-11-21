@@ -1,13 +1,13 @@
 <template>
   <div v-if="loading" class="loading">Creating Group...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
         <li><NuxtLink to="/groups">Groups</NuxtLink></li>
       </ul>
       <h1>Create New Group</h1>
-    </div>
+    </PageHead>
     <div class="page-body">
       <form class="create-form" @submit.prevent="createGroup">
         <p class="field-title">Name:</p>

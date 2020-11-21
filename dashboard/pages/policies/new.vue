@@ -1,13 +1,13 @@
 <template>
   <div v-if="loading" class="loading">Creating Policy...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
         <li><NuxtLink to="/policies">Policies</NuxtLink></li>
       </ul>
       <h1>Create New Policy</h1>
-    </div>
+    </PageHead>
     <div class="page-body">
       <form class="create-form" @submit.prevent="createPolicy">
         <p class="field-title">Name:</p>

@@ -9,6 +9,8 @@ export function errorForStatus(res: any, catchErr: string): Error {
     return err
   } else if (res.status === 404) {
     return new Error('Resource not found')
+  } else if (res.status === 422) {
+    return new Error('Resource is not unique')
   } else if (res.status === 500) {
     return new Error('Internal server error')
   } else {

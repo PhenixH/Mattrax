@@ -5,8 +5,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
+
+	"github.com/mattrax/Mattrax/pkg/null"
 )
 
 const addDevicesToGroup = `-- name: AddDevicesToGroup :exec
@@ -21,6 +22,22 @@ type AddDevicesToGroupParams struct {
 func (q *Queries) AddDevicesToGroup(ctx context.Context, arg AddDevicesToGroupParams) error {
 	_, err := q.exec(ctx, q.addDevicesToGroupStmt, addDevicesToGroup, arg.GroupID, arg.DeviceID)
 	return err
+}
+
+const addDomainToTenant = `-- name: AddDomainToTenant :one
+INSERT INTO tenant_domains(tenant_id, domain) VALUES ($1, $2) RETURNING linking_code
+`
+
+type AddDomainToTenantParams struct {
+	TenantID string `json:"tenant_id"`
+	Domain   string `json:"domain"`
+}
+
+func (q *Queries) AddDomainToTenant(ctx context.Context, arg AddDomainToTenantParams) (string, error) {
+	row := q.queryRow(ctx, q.addDomainToTenantStmt, addDomainToTenant, arg.TenantID, arg.Domain)
+	var linking_code string
+	err := row.Scan(&linking_code)
+	return linking_code, err
 }
 
 const addPoliciesToGroup = `-- name: AddPoliciesToGroup :exec
@@ -52,12 +69,68 @@ func (q *Queries) CreateRawCert(ctx context.Context, arg CreateRawCertParams) er
 	return err
 }
 
+const deleteDomain = `-- name: DeleteDomain :exec
+DELETE FROM tenant_domains WHERE domain=$1 AND tenant_id=$2
+`
+
+type DeleteDomainParams struct {
+	Domain   string `json:"domain"`
+	TenantID string `json:"tenant_id"`
+}
+
+func (q *Queries) DeleteDomain(ctx context.Context, arg DeleteDomainParams) error {
+	_, err := q.exec(ctx, q.deleteDomainStmt, deleteDomain, arg.Domain, arg.TenantID)
+	return err
+}
+
+const deleteGroup = `-- name: DeleteGroup :exec
+DELETE FROM groups WHERE id = $1 AND tenant_id = $2
+`
+
+type DeleteGroupParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+func (q *Queries) DeleteGroup(ctx context.Context, arg DeleteGroupParams) error {
+	_, err := q.exec(ctx, q.deleteGroupStmt, deleteGroup, arg.ID, arg.TenantID)
+	return err
+}
+
+const deletePolicy = `-- name: DeletePolicy :exec
+DELETE FROM policies WHERE id = $1 AND tenant_id = $2
+`
+
+type DeletePolicyParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+func (q *Queries) DeletePolicy(ctx context.Context, arg DeletePolicyParams) error {
+	_, err := q.exec(ctx, q.deletePolicyStmt, deletePolicy, arg.ID, arg.TenantID)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users WHERE upn=$1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, upn string) error {
 	_, err := q.exec(ctx, q.deleteUserStmt, deleteUser, upn)
+	return err
+}
+
+const deleteUserInTenant = `-- name: DeleteUserInTenant :exec
+DELETE FROM users WHERE upn=$1 AND tenant_id=$2
+`
+
+type DeleteUserInTenantParams struct {
+	UPN      string      `json:"upn"`
+	TenantID null.String `json:"tenant_id"`
+}
+
+func (q *Queries) DeleteUserInTenant(ctx context.Context, arg DeleteUserInTenantParams) error {
+	_, err := q.exec(ctx, q.deleteUserInTenantStmt, deleteUserInTenant, arg.UPN, arg.TenantID)
 	return err
 }
 
@@ -74,12 +147,12 @@ type GetDeviceRow struct {
 	ID          string             `json:"id"`
 	Protocol    ManagementProtocol `json:"protocol"`
 	Name        string             `json:"name"`
-	Description sql.NullString     `json:"description"`
+	Description null.String        `json:"description"`
 	State       DeviceState        `json:"state"`
-	Owner       sql.NullString     `json:"owner"`
-	AzureDid    sql.NullString     `json:"azure_did"`
+	Owner       null.String        `json:"owner"`
+	AzureDid    null.String        `json:"azure_did"`
 	EnrolledAt  time.Time          `json:"enrolled_at"`
-	Model       sql.NullString     `json:"model"`
+	Model       null.String        `json:"model"`
 }
 
 func (q *Queries) GetDevice(ctx context.Context, arg GetDeviceParams) (GetDeviceRow, error) {
@@ -136,11 +209,11 @@ SELECT id, name, description, policy_id, group_devices.group_id FROM policies IN
 `
 
 type GetDevicePoliciesRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	PolicyID    string         `json:"policy_id"`
-	GroupID     string         `json:"group_id"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
+	PolicyID    string      `json:"policy_id"`
+	GroupID     string      `json:"group_id"`
 }
 
 func (q *Queries) GetDevicePolicies(ctx context.Context, deviceID string) ([]GetDevicePoliciesRow, error) {
@@ -184,9 +257,9 @@ type GetDevicesParams struct {
 }
 
 type GetDevicesRow struct {
-	ID    string         `json:"id"`
-	Name  string         `json:"name"`
-	Model sql.NullString `json:"model"`
+	ID    string      `json:"id"`
+	Name  string      `json:"name"`
+	Model null.String `json:"model"`
 }
 
 //------ Device Actions
@@ -256,9 +329,9 @@ type GetGroupParams struct {
 }
 
 type GetGroupRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 func (q *Queries) GetGroup(ctx context.Context, arg GetGroupParams) (GetGroupRow, error) {
@@ -279,9 +352,9 @@ type GetGroupsParams struct {
 }
 
 type GetGroupsRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]GetGroupsRow, error) {
@@ -318,9 +391,9 @@ type GetPoliciesParams struct {
 }
 
 type GetPoliciesRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 func (q *Queries) GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]GetPoliciesRow, error) {
@@ -389,9 +462,9 @@ type GetPolicyParams struct {
 }
 
 type GetPolicyRow struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 func (q *Queries) GetPolicy(ctx context.Context, arg GetPolicyParams) (GetPolicyRow, error) {
@@ -426,10 +499,10 @@ SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIM
 `
 
 type GetTenantRow struct {
-	DisplayName   string         `json:"display_name"`
-	PrimaryDomain string         `json:"primary_domain"`
-	Email         sql.NullString `json:"email"`
-	Phone         sql.NullString `json:"phone"`
+	DisplayName   string      `json:"display_name"`
+	PrimaryDomain string      `json:"primary_domain"`
+	Email         null.String `json:"email"`
+	Phone         null.String `json:"phone"`
 }
 
 // DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
@@ -446,15 +519,69 @@ func (q *Queries) GetTenant(ctx context.Context, id string) (GetTenantRow, error
 	return i, err
 }
 
+const getTenantDomain = `-- name: GetTenantDomain :one
+SELECT linking_code, verified FROM tenant_domains WHERE domain=$1 AND tenant_id=$2 LIMIT 1
+`
+
+type GetTenantDomainParams struct {
+	Domain   string `json:"domain"`
+	TenantID string `json:"tenant_id"`
+}
+
+type GetTenantDomainRow struct {
+	LinkingCode string `json:"linking_code"`
+	Verified    bool   `json:"verified"`
+}
+
+func (q *Queries) GetTenantDomain(ctx context.Context, arg GetTenantDomainParams) (GetTenantDomainRow, error) {
+	row := q.queryRow(ctx, q.getTenantDomainStmt, getTenantDomain, arg.Domain, arg.TenantID)
+	var i GetTenantDomainRow
+	err := row.Scan(&i.LinkingCode, &i.Verified)
+	return i, err
+}
+
+const getTenantDomains = `-- name: GetTenantDomains :many
+SELECT domain, linking_code, verified FROM tenant_domains WHERE tenant_id = $1
+`
+
+type GetTenantDomainsRow struct {
+	Domain      string `json:"domain"`
+	LinkingCode string `json:"linking_code"`
+	Verified    bool   `json:"verified"`
+}
+
+func (q *Queries) GetTenantDomains(ctx context.Context, tenantID string) ([]GetTenantDomainsRow, error) {
+	rows, err := q.query(ctx, q.getTenantDomainsStmt, getTenantDomains, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTenantDomainsRow
+	for rows.Next() {
+		var i GetTenantDomainsRow
+		if err := rows.Scan(&i.Domain, &i.LinkingCode, &i.Verified); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUser = `-- name: GetUser :one
 SELECT upn, fullname, disabled, azuread_oid FROM users WHERE upn = $1 LIMIT 1
 `
 
 type GetUserRow struct {
-	UPN        string         `json:"upn"`
-	Fullname   string         `json:"fullname"`
-	Disabled   bool           `json:"disabled"`
-	AzureadOid sql.NullString `json:"azuread_oid"`
+	UPN        string      `json:"upn"`
+	Fullname   string      `json:"fullname"`
+	Disabled   bool        `json:"disabled"`
+	AzureadOid null.String `json:"azuread_oid"`
 }
 
 func (q *Queries) GetUser(ctx context.Context, upn string) (GetUserRow, error) {
@@ -490,10 +617,10 @@ SELECT fullname, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 
 `
 
 type GetUserSecureRow struct {
-	Fullname string         `json:"fullname"`
-	Password sql.NullString `json:"password"`
-	MfaToken sql.NullString `json:"mfa_token"`
-	TenantID sql.NullString `json:"tenant_id"`
+	Fullname string      `json:"fullname"`
+	Password null.String `json:"password"`
+	MfaToken null.String `json:"mfa_token"`
+	TenantID null.String `json:"tenant_id"`
 }
 
 func (q *Queries) GetUserSecure(ctx context.Context, upn string) (GetUserSecureRow, error) {
@@ -513,10 +640,10 @@ SELECT id, display_name, primary_domain, description FROM tenants INNER JOIN ten
 `
 
 type GetUserTenantsRow struct {
-	ID            string         `json:"id"`
-	DisplayName   string         `json:"display_name"`
-	PrimaryDomain string         `json:"primary_domain"`
-	Description   sql.NullString `json:"description"`
+	ID            string      `json:"id"`
+	DisplayName   string      `json:"display_name"`
+	PrimaryDomain string      `json:"primary_domain"`
+	Description   null.String `json:"description"`
 }
 
 func (q *Queries) GetUserTenants(ctx context.Context, userUpn string) ([]GetUserTenantsRow, error) {
@@ -552,15 +679,15 @@ SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 LIMIT $2 OFFSE
 `
 
 type GetUsersInTenantParams struct {
-	TenantID sql.NullString `json:"tenant_id"`
-	Limit    int32          `json:"limit"`
-	Offset   int32          `json:"offset"`
+	TenantID null.String `json:"tenant_id"`
+	Limit    int32       `json:"limit"`
+	Offset   int32       `json:"offset"`
 }
 
 type GetUsersInTenantRow struct {
-	UPN        string         `json:"upn"`
-	Fullname   string         `json:"fullname"`
-	AzureadOid sql.NullString `json:"azuread_oid"`
+	UPN        string      `json:"upn"`
+	Fullname   string      `json:"fullname"`
+	AzureadOid null.String `json:"azuread_oid"`
 }
 
 func (q *Queries) GetUsersInTenant(ctx context.Context, arg GetUsersInTenantParams) ([]GetUsersInTenantRow, error) {
@@ -592,16 +719,16 @@ SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 AND (upn || fu
 `
 
 type GetUsersInTenantByQueryParams struct {
-	TenantID sql.NullString `json:"tenant_id"`
-	Limit    int32          `json:"limit"`
-	Offset   int32          `json:"offset"`
-	UPN      string         `json:"upn"`
+	TenantID null.String `json:"tenant_id"`
+	Limit    int32       `json:"limit"`
+	Offset   int32       `json:"offset"`
+	UPN      string      `json:"upn"`
 }
 
 type GetUsersInTenantByQueryRow struct {
-	UPN        string         `json:"upn"`
-	Fullname   string         `json:"fullname"`
-	AzureadOid sql.NullString `json:"azuread_oid"`
+	UPN        string      `json:"upn"`
+	Fullname   string      `json:"fullname"`
+	AzureadOid null.String `json:"azuread_oid"`
 }
 
 // Once https://github.com/kyleconroy/sqlc/issues/778 is fixed change query to (including the ByQuery one): SELECT upn, fullname, azuread_oid FROM users INNER JOIN tenant_users ON users.upn = tenant_users.user_upn WHERE tenant_users.tenant_id = $1 UNION ALL SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1;
@@ -691,10 +818,10 @@ INSERT INTO users(upn, fullname, password, tenant_id) VALUES ($1, $2, $3, $4)
 `
 
 type NewUserParams struct {
-	UPN      string         `json:"upn"`
-	Fullname string         `json:"fullname"`
-	Password sql.NullString `json:"password"`
-	TenantID sql.NullString `json:"tenant_id"`
+	UPN      string      `json:"upn"`
+	Fullname string      `json:"fullname"`
+	Password null.String `json:"password"`
+	TenantID null.String `json:"tenant_id"`
 }
 
 //------ User
@@ -713,9 +840,9 @@ INSERT INTO users(upn, fullname, azuread_oid) VALUES ($1, $2, $3)
 `
 
 type NewUserFromAzureADParams struct {
-	UPN        string         `json:"upn"`
-	Fullname   string         `json:"fullname"`
-	AzureadOid sql.NullString `json:"azuread_oid"`
+	UPN        string      `json:"upn"`
+	Fullname   string      `json:"fullname"`
+	AzureadOid null.String `json:"azuread_oid"`
 }
 
 func (q *Queries) NewUserFromAzureAD(ctx context.Context, arg NewUserFromAzureADParams) error {
@@ -749,5 +876,20 @@ type ScopeUserToTenantParams struct {
 
 func (q *Queries) ScopeUserToTenant(ctx context.Context, arg ScopeUserToTenantParams) error {
 	_, err := q.exec(ctx, q.scopeUserToTenantStmt, scopeUserToTenant, arg.UserUpn, arg.TenantID, arg.PermissionLevel)
+	return err
+}
+
+const updateDomain = `-- name: UpdateDomain :exec
+UPDATE tenant_domains SET verified=$3 WHERE domain=$1 AND tenant_id=$2
+`
+
+type UpdateDomainParams struct {
+	Domain   string `json:"domain"`
+	TenantID string `json:"tenant_id"`
+	Verified bool   `json:"verified"`
+}
+
+func (q *Queries) UpdateDomain(ctx context.Context, arg UpdateDomainParams) error {
+	_, err := q.exec(ctx, q.updateDomainStmt, updateDomain, arg.Domain, arg.TenantID, arg.Verified)
 	return err
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
@@ -25,7 +26,7 @@ func APIHeaders(srv *mattrax.Server) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if srv.Args.Debug {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization,Access-Control-Request-Headers")
 				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE") // TEMP: Bypass for another bug
 			}
@@ -43,9 +44,12 @@ func APIHeaders(srv *mattrax.Server) mux.MiddlewareFunc {
 	}
 }
 
-type contextKey struct{}
+type contextKey string
 
-var claimsContextKey = &contextKey{}
+var (
+	claimsContextKey = contextKey("auth-claims")
+	dbTxContextKey   = contextKey("db-tx")
+)
 
 func AuthClaimsFromContext(ctx context.Context) *authentication.AuthClaims {
 	v := ctx.Value(claimsContextKey)
@@ -56,11 +60,26 @@ func AuthClaimsFromContext(ctx context.Context) *authentication.AuthClaims {
 	return &claims
 }
 
+func DBTxFromContext(ctx context.Context) *sql.Tx {
+	v := ctx.Value(dbTxContextKey)
+	if v == nil {
+		return nil
+	}
+	return v.(*sql.Tx)
+}
+
 func RequireAuthentication(srv *mattrax.Server) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			span := zipkin.SpanOrNoopFromContext(r.Context())
 			vars := mux.Vars(r)
+
+			tx, err := srv.DBConn.Begin()
+			if err != nil {
+				span.Tag("error", fmt.Sprintf("Error creating DB transaction: %s\n", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
 			authorizationHeader := strings.Split(r.Header.Get("Authorization"), " ")
 			if len(authorizationHeader) != 2 {
@@ -114,9 +133,26 @@ func RequireAuthentication(srv *mattrax.Server) mux.MiddlewareFunc {
 						return
 					}
 				}
+
+				// INSECURE: POTENTIAL SQL INJECTION VECTOR
+				if _, err := tx.Exec("SET mattrax.upn = '" + claims.Subject + "';"); err != nil {
+					span.Tag("error", fmt.Sprintf("Error setting mattrax upn on DB transaction: %s\n", err))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 			}
 
+			r = r.WithContext(context.WithValue(r.Context(), dbTxContextKey, tx))
+
+			w.Header().Add("X-Retrieved-At", time.Now().UTC().Format(http.TimeFormat))
+
 			next.ServeHTTP(w, r)
+
+			if err := tx.Commit(); err != nil {
+				span.Tag("error", fmt.Sprintf("Error committing DB transaction: %s\n", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		})
 	}
 }

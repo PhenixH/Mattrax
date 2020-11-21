@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
@@ -24,6 +25,7 @@ func Groups(srv *mattrax.Server) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
@@ -36,7 +38,7 @@ func Groups(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("limit", fmt.Sprintf("%v", limit))
 			span.Tag("offset", fmt.Sprintf("%v", offset))
 
-			groups, err := srv.DB.GetGroups(r.Context(), db.GetGroupsParams{
+			groups, err := srv.DB.WithTx(tx).GetGroups(r.Context(), db.GetGroupsParams{
 				TenantID: vars["tenant"],
 				Limit:    limit,
 				Offset:   offset,
@@ -79,12 +81,17 @@ func Groups(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			groupID, err := srv.DB.NewGroup(r.Context(), db.NewGroupParams{
+			groupID, err := srv.DB.WithTx(tx).NewGroup(r.Context(), db.NewGroupParams{
 				Name:     cmd.Name,
 				TenantID: vars["tenant"],
 			})
 			if err != nil {
-				log.Printf("[CreateUser Error]: %s\n", err)
+				if pqe, ok := err.(*pq.Error); ok && string(pqe.Code) == "23505" {
+					span.Tag("warn", fmt.Sprintf("error creating new user due to unique constraint violation: %s", err))
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					return
+				}
+				log.Printf("[CreateGroup Error]: %s\n", err)
 				span.Tag("err", fmt.Sprintf("error creating new group: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -104,10 +111,11 @@ func Groups(srv *mattrax.Server) http.HandlerFunc {
 
 func Group(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
-			user, err := srv.DB.GetGroup(r.Context(), db.GetGroupParams{
+			user, err := srv.DB.WithTx(tx).GetGroup(r.Context(), db.GetGroupParams{
 				ID:       vars["gid"],
 				TenantID: vars["tenant"],
 			})
@@ -138,7 +146,7 @@ func Group(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			query := `UPDATE groups SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
-			if _, err := srv.DBConn.Exec(query, vars["gid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+			if _, err := tx.Exec(query, vars["gid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
 				span.Tag("warn", "group not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
@@ -150,15 +158,33 @@ func Group(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusNoContent)
+		} else if r.Method == http.MethodDelete {
+			err := srv.DB.WithTx(tx).DeleteGroup(r.Context(), db.DeleteGroupParams{
+				ID:       vars["gid"],
+				TenantID: vars["tenant"],
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "group not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[DeleteGroup Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error deleting group: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		}
 	}
 }
 
 func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
-		groupDevices, err := srv.DB.GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
+		groupDevices, err := srv.DB.WithTx(tx).GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
 			GroupID: vars["gid"],
 			// TODO: Pagination
 			Limit:  100,

@@ -16,6 +16,7 @@ import (
 
 func Devices(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
@@ -28,13 +29,7 @@ func Devices(srv *mattrax.Server) http.HandlerFunc {
 		span.Tag("limit", fmt.Sprintf("%v", limit))
 		span.Tag("offset", fmt.Sprintf("%v", offset))
 
-		fmt.Println(db.GetDevicesParams{
-			TenantID: vars["tenant"],
-			Limit:    limit,
-			Offset:   offset,
-		})
-
-		devices, err := srv.DB.GetDevices(r.Context(), db.GetDevicesParams{
+		devices, err := srv.DB.WithTx(tx).GetDevices(r.Context(), db.GetDevicesParams{
 			TenantID: vars["tenant"],
 			Limit:    limit,
 			Offset:   offset,
@@ -61,10 +56,11 @@ func Devices(srv *mattrax.Server) http.HandlerFunc {
 
 func Device(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
-			device, err := srv.DB.GetDevice(r.Context(), db.GetDeviceParams{
+			device, err := srv.DB.WithTx(tx).GetDevice(r.Context(), db.GetDeviceParams{
 				ID:       vars["udid"],
 				TenantID: vars["tenant"],
 			})
@@ -95,7 +91,7 @@ func Device(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			query := `UPDATE devices SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
-			if _, err := srv.DBConn.Exec(query, vars["udid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+			if _, err := tx.Exec(query, vars["udid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
 				span.Tag("warn", "device not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
@@ -107,16 +103,20 @@ func Device(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusNoContent)
+		} else if r.Method == http.MethodDelete {
+			// TODO: Make server unenrollment work
+			w.WriteHeader(http.StatusNotImplemented)
 		}
 	}
 }
 
 func DeviceInformation(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
-		device, err := srv.DB.GetDevice(r.Context(), db.GetDeviceParams{
+		device, err := srv.DB.WithTx(tx).GetDevice(r.Context(), db.GetDeviceParams{
 			ID:       vars["udid"],
 			TenantID: vars["tenant"],
 		})
@@ -155,10 +155,11 @@ func DeviceInformation(srv *mattrax.Server) http.HandlerFunc {
 
 func DeviceScope(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
-		groups, err := srv.DB.GetDeviceGroups(r.Context(), vars["udid"])
+		groups, err := srv.DB.WithTx(tx).GetDeviceGroups(r.Context(), vars["udid"])
 		if err == sql.ErrNoRows {
 			span.Tag("warn", "device groups not found")
 			w.WriteHeader(http.StatusNotFound)
@@ -170,7 +171,7 @@ func DeviceScope(srv *mattrax.Server) http.HandlerFunc {
 			return
 		}
 
-		policies, err := srv.DB.GetDevicePolicies(r.Context(), vars["udid"])
+		policies, err := srv.DB.WithTx(tx).GetDevicePolicies(r.Context(), vars["udid"])
 		if err == sql.ErrNoRows {
 			span.Tag("warn", "device policies not found")
 			w.WriteHeader(http.StatusNotFound)

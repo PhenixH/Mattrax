@@ -1,16 +1,16 @@
 <template>
   <div v-if="loading" class="loading">Loading Users...</div>
   <div v-else>
-    <div class="page-head">
+    <PageHead>
       <ul class="breadcrumb">
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
       </ul>
       <h1>Users</h1>
-    </div>
-    <div class="page-nav">
+    </PageHead>
+    <PageNav>
       <button @click="$router.push('/users/new')">Create New User</button>
       <input type="text" placeholder="Search..." disabled />
-    </div>
+    </PageNav>
     <div class="page-body">
       <TableView :headings="['Name', 'UPN']">
         <tr v-for="user in users" :key="user.upn">

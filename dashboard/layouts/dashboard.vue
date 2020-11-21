@@ -7,7 +7,37 @@
         <h1>An Error Occured</h1>
         <p>{{ $store.state.dashboard.error }}</p>
       </div>
-      <Nuxt v-else />
+      <div v-else>
+        <Nuxt ref="body" />
+        <div
+          v-if="$store.state.dashboard.editting !== null"
+          class="page-footer"
+        >
+          <button
+            @click="
+              $store.state.dashboard.editting
+                ? $refs.body.$children[0].savebtn === undefined
+                  ? $refs.body.$children[0].$refs.body.savebtn()
+                  : $refs.body.$children[0].savebtn()
+                : $store.commit('dashboard/setEditting', true)
+            "
+          >
+            {{ $store.state.dashboard.editting ? 'Save' : 'Edit' }}
+          </button>
+          <button
+            v-if="$store.state.dashboard.deletable"
+            :disabled="!$store.state.dashboard.editting"
+            class="red"
+            @click="
+              $refs.body.$children[0].deletebtn === undefined
+                ? $refs.body.$children[0].$refs.body.deletebtn()
+                : $refs.body.$children[0].deletebtn()
+            "
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -139,6 +169,11 @@ main.icons {
   overflow: scroll; */
 }
 
+.danger {
+  color: #dc3545;
+  font-weight: 600;
+}
+
 .page-body input {
   display: block;
   margin: 10px;
@@ -173,6 +208,14 @@ main.icons {
   font-size: 16px;
   margin: 10px;
   width: 100px;
+}
+
+.page-footer button.red {
+  background-color: #dc3545;
+}
+
+.page-footer button.red:disabled {
+  background-color: #e35d6a;
 }
 
 .loading {

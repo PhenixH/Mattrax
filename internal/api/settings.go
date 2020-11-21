@@ -14,22 +14,51 @@ import (
 	"github.com/openzipkin/zipkin-go"
 )
 
-func SettingsTenant(srv *mattrax.Server) http.HandlerFunc {
-	// TODO: Replace with db.Tenant once sql.NullString fixed
-	type PatchRequest struct {
-		ID            string `json:"id"`
-		DisplayName   string `json:"display_name"`
-		PrimaryDomain string `json:"primary_domain"`
-		Email         string `json:"email"`
-		Phone         string `json:"phone"`
-		Description   string `json:"description"`
+func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
+	type Response struct {
+		DebugMode     bool   `json:"debug_mode"`
+		Version       string `json:"version"`
+		VersionCommit string `json:"version_commit"`
+		VersionDate   string `json:"version_date"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		span := zipkin.SpanOrNoopFromContext(r.Context())
+		if r.Method == http.MethodGet {
+			var cmd = Response{
+				DebugMode:     srv.Args.Debug,
+				Version:       mattrax.Version,
+				VersionCommit: mattrax.VersionCommit,
+				VersionDate:   mattrax.VersionDate,
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(cmd); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+}
+
+func SettingsTenant(srv *mattrax.Server) http.HandlerFunc {
+	// TODO: Replace with db.Tenant once sql.NullString fixed
+	type PatchRequest struct {
+		ID            string  `json:"id"`
+		DisplayName   *string `json:"display_name"`
+		PrimaryDomain *string `json:"primary_domain"`
+		Email         *string `json:"email"`
+		Phone         *string `json:"phone"`
+		Description   *string `json:"description"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
+		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
-			tenant, err := srv.DB.GetTenant(r.Context(), vars["tenant"])
+			tenant, err := srv.DB.WithTx(tx).GetTenant(r.Context(), vars["tenant"])
 			if err == sql.ErrNoRows {
 				span.Tag("warn", "tenant not found")
 				w.WriteHeader(http.StatusNotFound)
@@ -41,8 +70,19 @@ func SettingsTenant(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
+			domains, err := srv.DB.WithTx(tx).GetTenantDomains(r.Context(), vars["tenant"])
+			if err != nil {
+				log.Printf("[GetTenantDomains Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving tenant domains: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			if err := json.NewEncoder(w).Encode(tenant); err != nil {
+			if err := json.NewEncoder(w).Encode(map[string]interface{}{
+				"tenant":  tenant,
+				"domains": domains,
+			}); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -56,8 +96,8 @@ func SettingsTenant(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			query := `UPDATE tenants SET display_name=COALESCE(NULLIF($2, ''), display_name), email=COALESCE(NULLIF($3, ''), email), phone=COALESCE(NULLIF($4, ''), phone) WHERE id = $1;`
-			if _, err := srv.DBConn.Exec(query, vars["tenant"], cmd.DisplayName, cmd.Email, cmd.Phone); err == sql.ErrNoRows {
+			query := `UPDATE tenants SET display_name=NULLIF(COALESCE($2, display_name), ''), email=NULLIF(COALESCE($3, email), ''), phone=NULLIF(COALESCE($4, phone), '') WHERE id = $1;`
+			if _, err := tx.Exec(query, vars["tenant"], cmd.DisplayName, cmd.Email, cmd.Phone); err == sql.ErrNoRows {
 				span.Tag("warn", "tenant not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
@@ -75,6 +115,7 @@ func SettingsTenant(srv *mattrax.Server) http.HandlerFunc {
 
 func SettingsMe(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		claims := middleware.AuthClaimsFromContext(r.Context())
 		if claims == nil {
@@ -84,7 +125,7 @@ func SettingsMe(srv *mattrax.Server) http.HandlerFunc {
 		}
 
 		if r.Method == http.MethodGet {
-			user, err := srv.DB.GetUser(r.Context(), claims.Subject)
+			user, err := srv.DB.WithTx(tx).GetUser(r.Context(), claims.Subject)
 			if err == sql.ErrNoRows {
 				span.Tag("warn", "user not found")
 				w.WriteHeader(http.StatusNotFound)
@@ -112,7 +153,7 @@ func SettingsMe(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			query := `UPDATE users SET fullname=COALESCE(NULLIF($2, ''), fullname) WHERE upn = $1;`
-			if _, err := srv.DBConn.Exec(query, claims.Subject, cmd.Fullname); err == sql.ErrNoRows {
+			if _, err := tx.Exec(query, claims.Subject, cmd.Fullname); err == sql.ErrNoRows {
 				span.Tag("warn", "user not found")
 				w.WriteHeader(http.StatusNotFound)
 				return

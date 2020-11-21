@@ -5,52 +5,72 @@
     <input
       name="display_name"
       :value="tenant_settings.display_name"
-      :test="tenant_settings.display_name"
       type="text"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     />
 
     <p class="field-title">Tenant Email:</p>
     <input
       name="email"
       :value="tenant_settings.email"
-      :test="tenant_settings.email"
       type="email"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     />
 
     <p class="field-title">Tenant Phone:</p>
     <input
       name="phone"
       :value="tenant_settings.phone"
-      :test="tenant_settings.phone"
       type="tel"
-      :disabled="!editting"
+      :disabled="!$store.state.dashboard.editting"
     />
+
+    <h2>Domain Management</h2>
+    <p>
+      To link a domain create a TXT DNS record at the domain with the linking
+      code, then click verify.
+    </p>
+    <TableView :headings="['Domain', 'Verified', 'Linking Code', 'Actions']">
+      <tr v-for="domain in domains" :key="domain.domain">
+        <td>{{ domain.domain }}</td>
+        <td :class="{ danger: !domain.verified }">
+          {{ domain.verified === true ? 'Verified' : 'Awaiting Verification' }}
+        </td>
+        <td>mttx{{ domain.linking_code }}</td>
+        <td>
+          <button @click="verifyDomain(domain)">Verify</button>
+          <button @click="deleteDomain(domain)">Delete</button>
+        </td>
+      </tr>
+    </TableView>
+    <input
+      v-model="new_domain"
+      placeholder="example.com"
+      pattern="^[a-zA-Z][a-zA-Z\d-]{1,22}[a-zA-Z\d]$"
+    />
+    <button @click="addDomain()">Add Domain</button>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
+import resource from '@/mixins/resource'
 
 export default Vue.extend({
-  props: {
-    editting: {
-      type: Boolean,
-      required: true,
-    },
-  },
+  mixins: [resource],
   data() {
     return {
       tenant_settings: {},
+      domains: [],
+      new_domain: '',
     }
   },
   created() {
     this.$store
       .dispatch('settings/getForCurrentTenant')
       .then((settings) => {
-        this.tenant_settings = settings
-        this.loading = false
+        this.tenant_settings = settings.tenant
+        this.domains = settings.domains
       })
       .catch((err) => this.$store.commit('dashboard/setError', err))
   },
@@ -75,6 +95,29 @@ export default Vue.extend({
         this.$store.commit('tenants/set', tenant)
         this.$store.commit('tenants/clearTenants')
       }
+    },
+    async verifyDomain(domain: any) {
+      const verified = await this.$store.dispatch(
+        'tenants/verifyDomain',
+        domain.domain
+      )
+      this.domains.find((d) => d.domain === domain.domain).verified = verified
+    },
+    async deleteDomain(domain: any) {
+      await this.$store.dispatch('tenants/deleteDomain', domain.domain)
+      this.domains = this.domains.filter((d) => d.domain !== domain.domain)
+    },
+    async addDomain() {
+      if (this.new_domain === '') {
+        return
+      }
+
+      const domain = await this.$store.dispatch(
+        'tenants/addDomain',
+        this.new_domain
+      )
+      this.domains.push(domain)
+      this.new_domain = ''
     },
   },
 })
