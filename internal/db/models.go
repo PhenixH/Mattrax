@@ -139,10 +139,12 @@ type GroupPolicy struct {
 }
 
 type Policy struct {
-	ID          string      `json:"id"`
-	TenantID    string      `json:"tenant_id"`
-	Name        string      `json:"name"`
-	Description null.String `json:"description"`
+	ID          string          `json:"id"`
+	TenantID    string          `json:"tenant_id"`
+	Name        string          `json:"name"`
+	Type        string          `json:"type"`
+	Payload     json.RawMessage `json:"payload"`
+	Description null.String     `json:"description"`
 }
 
 type Tenant struct {

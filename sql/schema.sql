@@ -108,10 +108,14 @@ CREATE TABLE devices (
 
 -- CREATE TRIGGER devices_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON devices FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
+-- TODO: Use | CREATE TYPE policy_type AS ENUM ('wifi', 'custom');
+
 CREATE TABLE policies (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),
     tenant_id TEXT REFERENCES tenants(id) NOT NULL,
     name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'custom',
+    payload JSONB NOT NULL DEFAULT '{}',
     description TEXT,
     UNIQUE (tenant_id, name)
 );

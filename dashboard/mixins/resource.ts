@@ -2,10 +2,16 @@ function generateFormPatch(el: any) {
   let patch: any = null
   el.querySelectorAll('input, select, checkbox, textarea').forEach(
     (node: HTMLInputElement) => {
+      // console.log(node.defaultValue)
       if (node.value !== node.defaultValue) {
+        // console.log(node.defaultValue, node.value)
         if (patch === null) patch = {}
         if (node.getAttribute('data-type') === 'bool') {
           patch[node.name] = node.value === 'true'
+        } else if (node.getAttribute('data-subtype') !== null) {
+          if (patch[node.getAttribute('data-subtype')] === undefined)
+            patch[node.getAttribute('data-subtype')] = {}
+          patch[node.getAttribute('data-subtype')][node.name] = node.value
         } else {
           patch[node.name] = node.value
         }
@@ -30,14 +36,20 @@ export default {
     this.$store.commit('dashboard/setEditting', null)
     this.$store.commit('dashboard/setDeletable', false)
   },
-  updated() {
+  mounted() {
     this.storeDefaultValues()
   },
   methods: {
     storeDefaultValues() {
       this.$el
         .querySelectorAll('input, select, checkbox, textarea')
-        .forEach((node: any) => (node.defaultValue = node.value))
+        .forEach((node: any) => {
+          if (node.nodeName === 'SELECT') {
+            node.defaultValue = node.options[node.selectedIndex].value
+          } else {
+            node.defaultValue = node.value
+          }
+        })
     },
     savebtn() {
       const patch = generateFormPatch(this.$el)

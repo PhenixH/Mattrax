@@ -91,13 +91,13 @@ INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2);
 -------- Policy Actions
 
 -- name: NewPolicy :one
-INSERT INTO policies(name, tenant_id) VALUES ($1, $2) RETURNING id;
+INSERT INTO policies(name, type, tenant_id) VALUES ($1, $2, $3) RETURNING id;
 
 -- name: GetPolicies :many
-SELECT id, name, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetPolicy :one
-SELECT id, name, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+SELECT id, name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
 -- name: DeletePolicy :exec
 DELETE FROM policies WHERE id = $1 AND tenant_id = $2;

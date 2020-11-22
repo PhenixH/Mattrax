@@ -18,6 +18,7 @@ import (
 func Policies(srv *mattrax.Server) http.HandlerFunc {
 	type CreateRequest struct {
 		Name string `json:"name" validate:"required,alphanumspace,min=1,max=100"`
+		Type string `json:"type"` // TODO: Validate against JSON
 	}
 
 	type CreateResponse struct {
@@ -82,6 +83,7 @@ func Policies(srv *mattrax.Server) http.HandlerFunc {
 			policyID, err := srv.DB.WithTx(tx).NewPolicy(r.Context(), db.NewPolicyParams{
 				Name:     cmd.Name,
 				TenantID: vars["tenant"],
+				Type:     cmd.Type,
 			})
 			if err != nil {
 				if pqe, ok := err.(*pq.Error); ok && string(pqe.Code) == "23505" {
@@ -145,8 +147,12 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			query := `UPDATE policies SET name=COALESCE(NULLIF($3, ''), name) WHERE id = $1 AND tenant_id=$2;`
-			if _, err := tx.Exec(query, vars["pid"], vars["tenant"], cmd.Name); err == sql.ErrNoRows {
+			if len(cmd.Payload) == 0 {
+				cmd.Payload = []byte("{}")
+			}
+
+			query := `UPDATE policies SET name=COALESCE(NULLIF($3, ''), name), type=COALESCE(NULLIF($4, ''), type), payload=payload||$5 WHERE id = $1 AND tenant_id=$2;`
+			if _, err := tx.Exec(query, vars["pid"], vars["tenant"], cmd.Name, cmd.Type, string(cmd.Payload)); err == sql.ErrNoRows {
 				span.Tag("warn", "policy not found")
 				w.WriteHeader(http.StatusNotFound)
 				return

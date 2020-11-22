@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/mattrax/Mattrax/pkg/null"
@@ -381,7 +382,7 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]GetGrou
 }
 
 const getPolicies = `-- name: GetPolicies :many
-SELECT id, name, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3
+SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 `
 
 type GetPoliciesParams struct {
@@ -393,6 +394,7 @@ type GetPoliciesParams struct {
 type GetPoliciesRow struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
+	Type        string      `json:"type"`
 	Description null.String `json:"description"`
 }
 
@@ -405,7 +407,12 @@ func (q *Queries) GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]Get
 	var items []GetPoliciesRow
 	for rows.Next() {
 		var i GetPoliciesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Description); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Type,
+			&i.Description,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -453,7 +460,7 @@ func (q *Queries) GetPoliciesInGroup(ctx context.Context, arg GetPoliciesInGroup
 }
 
 const getPolicy = `-- name: GetPolicy :one
-SELECT id, name, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1
+SELECT id, name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1
 `
 
 type GetPolicyParams struct {
@@ -462,15 +469,23 @@ type GetPolicyParams struct {
 }
 
 type GetPolicyRow struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Description null.String `json:"description"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Type        string          `json:"type"`
+	Payload     json.RawMessage `json:"payload"`
+	Description null.String     `json:"description"`
 }
 
 func (q *Queries) GetPolicy(ctx context.Context, arg GetPolicyParams) (GetPolicyRow, error) {
 	row := q.queryRow(ctx, q.getPolicyStmt, getPolicy, arg.ID, arg.TenantID)
 	var i GetPolicyRow
-	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.Payload,
+		&i.Description,
+	)
 	return i, err
 }
 
@@ -780,17 +795,18 @@ func (q *Queries) NewGroup(ctx context.Context, arg NewGroupParams) (string, err
 
 const newPolicy = `-- name: NewPolicy :one
 
-INSERT INTO policies(name, tenant_id) VALUES ($1, $2) RETURNING id
+INSERT INTO policies(name, type, tenant_id) VALUES ($1, $2, $3) RETURNING id
 `
 
 type NewPolicyParams struct {
 	Name     string `json:"name"`
+	Type     string `json:"type"`
 	TenantID string `json:"tenant_id"`
 }
 
 //------ Policy Actions
 func (q *Queries) NewPolicy(ctx context.Context, arg NewPolicyParams) (string, error) {
-	row := q.queryRow(ctx, q.newPolicyStmt, newPolicy, arg.Name, arg.TenantID)
+	row := q.queryRow(ctx, q.newPolicyStmt, newPolicy, arg.Name, arg.Type, arg.TenantID)
 	var id string
 	err := row.Scan(&id)
 	return id, err

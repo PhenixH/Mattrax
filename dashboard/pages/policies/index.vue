@@ -12,7 +12,7 @@
       <input type="text" placeholder="Search..." disabled />
     </PageNav>
     <div class="page-body">
-      <TableView :headings="['Name', 'Payloads']">
+      <TableView :headings="['Name', 'Type']">
         <tr v-for="policy in policies" :key="policy.id">
           <td>
             <NuxtLink :to="'/policies/' + policy.id" exact>{{
@@ -20,7 +20,7 @@
             }}</NuxtLink>
           </td>
           <td>
-            <!-- {{ policy.payloads.join(', ') }} -->
+            {{ payloads_json[policy.type].display_name }}
           </td>
         </tr>
       </TableView>
@@ -30,6 +30,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import policiesJson from '@/policies.json'
 
 export default Vue.extend({
   layout: 'dashboard',
@@ -37,6 +38,7 @@ export default Vue.extend({
     return {
       loading: true,
       policies: [],
+      payloads_json: policiesJson.payloads,
     }
   },
   created() {

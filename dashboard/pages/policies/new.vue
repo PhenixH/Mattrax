@@ -18,6 +18,13 @@
           required
         />
 
+        <p class="field-title">Type:</p>
+        <select v-model="policy.type" name="type">
+          <option v-for="(v, key) in payloads_json" :key="key" :value="key">
+            {{ v.display_name }}
+          </option>
+        </select>
+
         <button type="submit" class="submit">Create Policy</button>
       </form>
     </div>
@@ -26,6 +33,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import policiesJson from '@/policies.json'
 
 export default Vue.extend({
   layout: 'dashboard',
@@ -35,7 +43,9 @@ export default Vue.extend({
       passwordVisible: false,
       policy: {
         name: '',
+        type: 'custom',
       },
+      payloads_json: policiesJson.payloads,
     }
   },
   methods: {
