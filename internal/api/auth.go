@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -38,7 +39,11 @@ func Login(srv *mattrax.Server) http.HandlerFunc {
 		var audience = "dashboard" // TODO: Set to enrollment if device enrolling process
 
 		user, err := srv.DB.GetUserSecure(r.Context(), cmd.UPN)
-		if err != nil {
+		if err == sql.ErrNoRows {
+			span.Tag("err", fmt.Sprintf("user does not exist"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		} else if err != nil {
 			log.Printf("[GetUserSecure Error]: %s\n", err)
 			span.Tag("err", fmt.Sprintf("[GetUserSecure Error]: %s", err))
 			w.WriteHeader(http.StatusInternalServerError)

@@ -2,19 +2,15 @@ function generateFormPatch(el: any) {
   let patch: any = null
   el.querySelectorAll('input, select, checkbox, textarea').forEach(
     (node: HTMLInputElement) => {
-      // console.log(node.defaultValue)
-      if (node.value !== node.defaultValue) {
-        // console.log(node.defaultValue, node.value)
+      console.log(node.name, node.checked, node.defaultChecked, node.value, node.defaultValue)
+      if (node.value !== node.defaultValue || node.checked !== node.defaultChecked) {
         if (patch === null) patch = {}
-        if (node.getAttribute('data-type') === 'bool') {
-          patch[node.name] = node.value === 'true'
-        } else if (node.getAttribute('data-subtype') !== null) {
-          if (patch[node.getAttribute('data-subtype')] === undefined)
-            patch[node.getAttribute('data-subtype')] = {}
-          patch[node.getAttribute('data-subtype')][node.name] = node.value
-        } else {
-          patch[node.name] = node.value
+        let patchLoc = patch;
+        if (node.getAttribute('data-subtype') !== null) {
+          patch[node.getAttribute('data-subtype')] = {}
+          patchLoc = patch[node.getAttribute('data-subtype')]
         }
+        patchLoc[node.name] = node.type === "checkbox" ? node.checked : node.value
       }
     }
   )
@@ -38,13 +34,40 @@ export default {
   },
   mounted() {
     this.storeDefaultValues()
+
+    this._keyListener = function (e: any) {
+      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        if(this.$store.state.dashboard.editting !== true) return
+        this.savebtn()
+      } else if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        if(this.$store.state.dashboard.editting === null) return
+        this.$store.commit('dashboard/setEditting', true)
+      } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        if(this.$store.state.dashboard.editting === null) return
+        if (confirm('Are you sure you want to delete this resource?')) {
+          this.deletebtn();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', this._keyListener.bind(this))
+  },
+  beforeDestroy() {
+    document.removeEventListener('keydown', this._keyListener)
   },
   methods: {
     storeDefaultValues() {
       this.$el
         .querySelectorAll('input, select, checkbox, textarea')
         .forEach((node: any) => {
-          if (node.nodeName === 'SELECT') {
+          console.log(node.type === "checkbox")
+          if(node.type === "checkbox") {
+            console.log(node.checked, node.defaultChecked)
+            node.defaultChecked = node.checked
+          } else if (node.nodeName === 'SELECT') {
             node.defaultValue = node.options[node.selectedIndex].value
           } else {
             node.defaultValue = node.value
@@ -66,7 +89,7 @@ export default {
         .catch((err: Error) => this.$store.commit('dashboard/setError', err)) // TODO: Warning that saving failed
     },
     deletebtn() {
-      ;(this.delete !== undefined ? this.delete : this.$parent.delete)()
+      (this.delete !== undefined ? this.delete : this.$parent.delete)()
         .then((dest: string) => {
           this.$store.commit('dashboard/setEditting', false)
           this.$router.push(dest)

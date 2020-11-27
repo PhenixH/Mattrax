@@ -1,5 +1,18 @@
 {
   "payloads": {
+    "restrictions": {
+      "display_name": "Basic Restrictions",
+      "fields": {
+        "block-camera": {
+          "display_name": "Disable Camera",
+          "type": "checkbox"
+        },
+        "block-bluetooth": {
+          "display_name": "Disable Bluetooth",
+          "type": "checkbox"
+        }
+      }
+    },
     "wifi": {
       "display_name": "WiFi",
       "fields": {

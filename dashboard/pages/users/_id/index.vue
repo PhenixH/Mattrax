@@ -20,7 +20,7 @@
     <p class="field-title">Status:</p>
     <select
       name="disabled"
-      data-type="bool"
+      data-type="select"
       :value="user.disabled"
       :disabled="!$store.state.dashboard.editting"
     >

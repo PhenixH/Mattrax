@@ -11,7 +11,7 @@
     <p class="field-title">Type:</p>
     <select
       name="type"
-      :value="policy.type"
+      v-model="policy.type"
       :disabled="!$store.state.dashboard.editting"
     >
       <option v-for="(v, key) in payloads_json" :key="key" :value="key">
@@ -20,7 +20,7 @@
     </select>
 
     <div v-if="active_payload !== undefined" ref="payloads">
-      <p class="field-title">{{ active_payload.display_name }}</p>
+      <h2 class="field-title">{{ active_payload.display_name }}</h2>
       <div v-for="(field, field_id) in active_payload.fields" :key="field_id">
         <p class="field-title">{{ field.display_name }}</p>
         <select
@@ -38,11 +38,20 @@
           </option>
         </select>
         <input
-          v-else
-          :name="field_id"
-          :value="policy.payload[field_id]"
-          :type="field.type === 'password' ? 'password' : 'text'"
+          v-else-if="field.type === 'checkbox'"
           data-subtype="payload"
+          :name="field_id"
+          type="checkbox"
+          :checked="policy.payload[field_id]"
+          value=""
+          :disabled="!$store.state.dashboard.editting"
+        />
+        <input
+          v-else
+          data-subtype="payload"
+          :name="field_id"
+          :type="field.type !== null ? field.type : 'text'"
+          :value="policy.payload[field_id]"
           :placeholder="field.placeholder"
           :disabled="!$store.state.dashboard.editting"
         />

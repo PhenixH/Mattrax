@@ -26,13 +26,13 @@ func Mount(srv *mattrax.Server) {
 	r.Use(middleware.APIHeaders(srv))
 	r.Use(mux.CORSMethodMiddleware(srv.Router)) // TODO: Fix not working + remove temp bypass in API middleware
 
-	r.HandleFunc("/login", Login(srv)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/login", Login(srv)).Methods(http.MethodPost, http.MethodOptions).Name("/login")
 
 	rAuthed := r.PathPrefix("/").Subrouter()
 	rAuthed.Use(middleware.RequireAuthentication(srv))
 
 	if os.Getenv("MATTRAX_CLOUD") == "true" {
-		rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+		rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/tenants")
 	}
 
 	rAuthed.HandleFunc("/me/settings", SettingsMe(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/me/settings")

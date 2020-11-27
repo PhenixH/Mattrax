@@ -18,6 +18,12 @@
         <span v-if="$store.state.dashboard.menuActive">Users</span>
       </transition>
     </NuxtLink>
+    <NuxtLink to="/applications" exact>
+      <BrowserIcon />
+      <transition name="slide-fade">
+        <span v-if="$store.state.dashboard.menuActive">Applications</span>
+      </transition>
+    </NuxtLink>
     <NuxtLink to="/policies" exact>
       <BookIcon />
       <transition name="slide-fade">
