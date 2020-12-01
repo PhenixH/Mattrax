@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
@@ -16,20 +17,28 @@ import (
 
 func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
 	type Response struct {
-		DebugMode     bool   `json:"debug_mode"`
-		Version       string `json:"version"`
-		VersionCommit string `json:"version_commit"`
-		VersionDate   string `json:"version_date"`
+		DebugMode      bool   `json:"debug_mode"`
+		CloudMode      bool   `json:"cloud_mode"`
+		PrimaryDomain  string `json:"primary_domain"`
+		DatabaseStatus bool   `json:"database_status"`
+		ZipkinStatus   bool   `json:"zipkin_status,omitempty"`
+		Version        string `json:"version"`
+		VersionCommit  string `json:"version_commit"`
+		VersionDate    string `json:"version_date"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		if r.Method == http.MethodGet {
 			var cmd = Response{
-				DebugMode:     srv.Args.Debug,
-				Version:       mattrax.Version,
-				VersionCommit: mattrax.VersionCommit,
-				VersionDate:   mattrax.VersionDate,
+				DebugMode:      srv.Args.Debug,
+				CloudMode:      os.Getenv("MATTRAX_CLOUD") == "true",
+				PrimaryDomain:  srv.Args.Domain,
+				DatabaseStatus: srv.DBConn.PingContext(r.Context()) == nil,
+				ZipkinStatus:   srv.Args.Zipkin != "",
+				Version:        mattrax.Version,
+				VersionCommit:  mattrax.VersionCommit,
+				VersionDate:    mattrax.VersionDate,
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")

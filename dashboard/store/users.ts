@@ -18,7 +18,9 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching users from server'))
+            reject(
+              errorForStatus(context, res, 'Error fetching users from server')
+            )
             return
           }
 
@@ -40,7 +42,9 @@ export const actions = {
       })
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching user from server'))
+            reject(
+              errorForStatus(context, res, 'Error fetching user from server')
+            )
             return
           }
 
@@ -72,7 +76,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error creating new user on server'))
+            reject(
+              errorForStatus(context, res, 'Error creating new user on server')
+            )
             return
           }
           resolve()
@@ -95,7 +101,9 @@ export const actions = {
       })
         .then(async (res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error patching user on server'))
+            reject(
+              errorForStatus(context, res, 'Error patching user on server')
+            )
             return
           }
 
@@ -127,7 +135,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error deleting user on server'))
+            reject(
+              errorForStatus(context, res, 'Error deleting user on server')
+            )
             return
           }
 

@@ -13,3 +13,5 @@ overrides:
   - go_type: "github.com/mattrax/Mattrax/pkg/null.String"
     db_type: "text"
     nullable: true
+  - column: "applications.name"
+    go_type: "github.com/mattrax/Mattrax/pkg/null.String"

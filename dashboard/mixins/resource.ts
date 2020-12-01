@@ -2,15 +2,18 @@ function generateFormPatch(el: any) {
   let patch: any = null
   el.querySelectorAll('input, select, checkbox, textarea').forEach(
     (node: HTMLInputElement) => {
-      console.log(node.name, node.checked, node.defaultChecked, node.value, node.defaultValue)
-      if (node.value !== node.defaultValue || node.checked !== node.defaultChecked) {
+      if (
+        node.value !== node.defaultValue ||
+        node.checked !== node.defaultChecked
+      ) {
         if (patch === null) patch = {}
-        let patchLoc = patch;
+        let patchLoc = patch
         if (node.getAttribute('data-subtype') !== null) {
           patch[node.getAttribute('data-subtype')] = {}
           patchLoc = patch[node.getAttribute('data-subtype')]
         }
-        patchLoc[node.name] = node.type === "checkbox" ? node.checked : node.value
+        patchLoc[node.name] =
+          node.type === 'checkbox' ? node.checked : node.value
       }
     }
   )
@@ -38,17 +41,17 @@ export default {
     this._keyListener = function (e: any) {
       if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        if(this.$store.state.dashboard.editting !== true) return
+        if (this.$store.state.dashboard.editting !== true) return
         this.savebtn()
       } else if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        if(this.$store.state.dashboard.editting === null) return
+        if (this.$store.state.dashboard.editting === null) return
         this.$store.commit('dashboard/setEditting', true)
       } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        if(this.$store.state.dashboard.editting === null) return
+        if (this.$store.state.dashboard.editting === null) return
         if (confirm('Are you sure you want to delete this resource?')) {
-          this.deletebtn();
+          this.deletebtn()
         }
       }
     }
@@ -63,9 +66,7 @@ export default {
       this.$el
         .querySelectorAll('input, select, checkbox, textarea')
         .forEach((node: any) => {
-          console.log(node.type === "checkbox")
-          if(node.type === "checkbox") {
-            console.log(node.checked, node.defaultChecked)
+          if (node.type === 'checkbox') {
             node.defaultChecked = node.checked
           } else if (node.nodeName === 'SELECT') {
             node.defaultValue = node.options[node.selectedIndex].value
@@ -89,7 +90,7 @@ export default {
         .catch((err: Error) => this.$store.commit('dashboard/setError', err)) // TODO: Warning that saving failed
     },
     deletebtn() {
-      (this.delete !== undefined ? this.delete : this.$parent.delete)()
+      ;(this.delete !== undefined ? this.delete : this.$parent.delete)()
         .then((dest: string) => {
           this.$store.commit('dashboard/setEditting', false)
           this.$router.push(dest)

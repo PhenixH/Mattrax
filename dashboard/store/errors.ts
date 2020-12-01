@@ -1,5 +1,13 @@
-export function errorForStatus(res: any, catchErr: string): Error {
+export function errorForStatus(
+  context: any,
+  res: any,
+  catchErr: string
+): Error {
   console.error('Error on request: ' + res.headers.get('x-request-id'))
+  context.commit('dashboard/setErrorTraceID', res.headers.get('x-request-id'), {
+    root: true,
+  })
+
   if (res.status === 401) {
     const err = new Error('Unauthorised access to API')
     err.name = 'AuthError'

@@ -15,11 +15,23 @@
             this.$route.path.replace(
               '/applications/' + this.$route.params.id,
               ''
-            ) == '',
+            ) === '',
         }"
         @click="navigate('')"
       >
         Overview
+      </button>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace(
+              '/applications/' + this.$route.params.id,
+              ''
+            ) === '/targets',
+        }"
+        @click="navigate('/targets')"
+      >
+        Targets
       </button>
     </PageNav>
     <NuxtChild ref="body" :app="app" />
@@ -40,7 +52,7 @@ export default Vue.extend({
   created() {
     this.$store.commit('dashboard/setDeletable', true)
     this.$store
-      .dispatch('policies/getByID', this.$route.params.id)
+      .dispatch('applications/getByID', this.$route.params.id)
       .then((app) => {
         this.app = app
         this.loading = false
@@ -52,7 +64,7 @@ export default Vue.extend({
       this.$router.push('/applications/' + this.$route.params.id + pathSuffix)
     },
     async delete(): Promise<string> {
-      // await this.$store.dispatch('policies/deletePolicy', this.$route.params.id)
+      await this.$store.dispatch('applications/delete', this.$route.params.id)
       return '/applications'
     },
   },

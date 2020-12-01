@@ -9,16 +9,16 @@
       <h1>Add New Application</h1>
     </PageHead>
     <div class="page-body">
-      <form class="create-form" @submit.prevent="createPolicy">
+      <form class="create-form" @submit.prevent="createApplication">
         <p class="field-title">Name:</p>
         <input
-          v-model="policy.name"
+          v-model="app.name"
           type="text"
           placeholder="Baseline Restrictions"
           required
         />
 
-        <button type="submit" class="submit">Create Policy</button>
+        <button type="submit" class="submit">Create Application</button>
       </form>
     </div>
   </div>
@@ -33,18 +33,17 @@ export default Vue.extend({
     return {
       loading: false,
       passwordVisible: false,
-      policy: {
+      app: {
         name: '',
-        type: 'custom',
       },
     }
   },
   methods: {
-    createPolicy() {
+    createApplication() {
       this.loading = true
       this.$store
-        .dispatch('policies/createPolicy', this.policy)
-        .then((pid) => this.$router.push('/policies/' + pid))
+        .dispatch('applications/create', this.app)
+        .then((pid) => this.$router.push('/applications/' + pid))
         .catch((err) => this.$store.commit('dashboard/setError', err))
     },
   },

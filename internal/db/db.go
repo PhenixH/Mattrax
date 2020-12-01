@@ -31,8 +31,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.addPoliciesToGroupStmt, err = db.PrepareContext(ctx, addPoliciesToGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query AddPoliciesToGroup: %w", err)
 	}
+	if q.createObjectStmt, err = db.PrepareContext(ctx, createObject); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateObject: %w", err)
+	}
 	if q.createRawCertStmt, err = db.PrepareContext(ctx, createRawCert); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateRawCert: %w", err)
+	}
+	if q.deleteApplicationStmt, err = db.PrepareContext(ctx, deleteApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteApplication: %w", err)
 	}
 	if q.deleteDomainStmt, err = db.PrepareContext(ctx, deleteDomain); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteDomain: %w", err)
@@ -48,6 +54,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteUserInTenantStmt, err = db.PrepareContext(ctx, deleteUserInTenant); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUserInTenant: %w", err)
+	}
+	if q.getApplicationStmt, err = db.PrepareContext(ctx, getApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplication: %w", err)
+	}
+	if q.getApplicationTargetsStmt, err = db.PrepareContext(ctx, getApplicationTargets); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplicationTargets: %w", err)
+	}
+	if q.getApplicationsStmt, err = db.PrepareContext(ctx, getApplications); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplications: %w", err)
 	}
 	if q.getDeviceStmt, err = db.PrepareContext(ctx, getDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDevice: %w", err)
@@ -69,6 +84,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getGroupsStmt, err = db.PrepareContext(ctx, getGroups); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGroups: %w", err)
+	}
+	if q.getObjectStmt, err = db.PrepareContext(ctx, getObject); err != nil {
+		return nil, fmt.Errorf("error preparing query GetObject: %w", err)
 	}
 	if q.getPoliciesStmt, err = db.PrepareContext(ctx, getPolicies); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPolicies: %w", err)
@@ -109,6 +127,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUsersInTenantByQueryStmt, err = db.PrepareContext(ctx, getUsersInTenantByQuery); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUsersInTenantByQuery: %w", err)
 	}
+	if q.newApplicationStmt, err = db.PrepareContext(ctx, newApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query NewApplication: %w", err)
+	}
 	if q.newGroupStmt, err = db.PrepareContext(ctx, newGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query NewGroup: %w", err)
 	}
@@ -130,8 +151,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.scopeUserToTenantStmt, err = db.PrepareContext(ctx, scopeUserToTenant); err != nil {
 		return nil, fmt.Errorf("error preparing query ScopeUserToTenant: %w", err)
 	}
+	if q.updateApplicationStmt, err = db.PrepareContext(ctx, updateApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateApplication: %w", err)
+	}
 	if q.updateDomainStmt, err = db.PrepareContext(ctx, updateDomain); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateDomain: %w", err)
+	}
+	if q.updateObjectStmt, err = db.PrepareContext(ctx, updateObject); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateObject: %w", err)
 	}
 	return &q, nil
 }
@@ -153,9 +180,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing addPoliciesToGroupStmt: %w", cerr)
 		}
 	}
+	if q.createObjectStmt != nil {
+		if cerr := q.createObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createObjectStmt: %w", cerr)
+		}
+	}
 	if q.createRawCertStmt != nil {
 		if cerr := q.createRawCertStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createRawCertStmt: %w", cerr)
+		}
+	}
+	if q.deleteApplicationStmt != nil {
+		if cerr := q.deleteApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteApplicationStmt: %w", cerr)
 		}
 	}
 	if q.deleteDomainStmt != nil {
@@ -181,6 +218,21 @@ func (q *Queries) Close() error {
 	if q.deleteUserInTenantStmt != nil {
 		if cerr := q.deleteUserInTenantStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteUserInTenantStmt: %w", cerr)
+		}
+	}
+	if q.getApplicationStmt != nil {
+		if cerr := q.getApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationStmt: %w", cerr)
+		}
+	}
+	if q.getApplicationTargetsStmt != nil {
+		if cerr := q.getApplicationTargetsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationTargetsStmt: %w", cerr)
+		}
+	}
+	if q.getApplicationsStmt != nil {
+		if cerr := q.getApplicationsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationsStmt: %w", cerr)
 		}
 	}
 	if q.getDeviceStmt != nil {
@@ -216,6 +268,11 @@ func (q *Queries) Close() error {
 	if q.getGroupsStmt != nil {
 		if cerr := q.getGroupsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getGroupsStmt: %w", cerr)
+		}
+	}
+	if q.getObjectStmt != nil {
+		if cerr := q.getObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getObjectStmt: %w", cerr)
 		}
 	}
 	if q.getPoliciesStmt != nil {
@@ -283,6 +340,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUsersInTenantByQueryStmt: %w", cerr)
 		}
 	}
+	if q.newApplicationStmt != nil {
+		if cerr := q.newApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newApplicationStmt: %w", cerr)
+		}
+	}
 	if q.newGroupStmt != nil {
 		if cerr := q.newGroupStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing newGroupStmt: %w", cerr)
@@ -318,9 +380,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing scopeUserToTenantStmt: %w", cerr)
 		}
 	}
+	if q.updateApplicationStmt != nil {
+		if cerr := q.updateApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateApplicationStmt: %w", cerr)
+		}
+	}
 	if q.updateDomainStmt != nil {
 		if cerr := q.updateDomainStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateDomainStmt: %w", cerr)
+		}
+	}
+	if q.updateObjectStmt != nil {
+		if cerr := q.updateObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateObjectStmt: %w", cerr)
 		}
 	}
 	return err
@@ -365,12 +437,17 @@ type Queries struct {
 	addDevicesToGroupStmt               *sql.Stmt
 	addDomainToTenantStmt               *sql.Stmt
 	addPoliciesToGroupStmt              *sql.Stmt
+	createObjectStmt                    *sql.Stmt
 	createRawCertStmt                   *sql.Stmt
+	deleteApplicationStmt               *sql.Stmt
 	deleteDomainStmt                    *sql.Stmt
 	deleteGroupStmt                     *sql.Stmt
 	deletePolicyStmt                    *sql.Stmt
 	deleteUserStmt                      *sql.Stmt
 	deleteUserInTenantStmt              *sql.Stmt
+	getApplicationStmt                  *sql.Stmt
+	getApplicationTargetsStmt           *sql.Stmt
+	getApplicationsStmt                 *sql.Stmt
 	getDeviceStmt                       *sql.Stmt
 	getDeviceGroupsStmt                 *sql.Stmt
 	getDevicePoliciesStmt               *sql.Stmt
@@ -378,6 +455,7 @@ type Queries struct {
 	getDevicesInGroupStmt               *sql.Stmt
 	getGroupStmt                        *sql.Stmt
 	getGroupsStmt                       *sql.Stmt
+	getObjectStmt                       *sql.Stmt
 	getPoliciesStmt                     *sql.Stmt
 	getPoliciesInGroupStmt              *sql.Stmt
 	getPolicyStmt                       *sql.Stmt
@@ -391,6 +469,7 @@ type Queries struct {
 	getUserTenantsStmt                  *sql.Stmt
 	getUsersInTenantStmt                *sql.Stmt
 	getUsersInTenantByQueryStmt         *sql.Stmt
+	newApplicationStmt                  *sql.Stmt
 	newGroupStmt                        *sql.Stmt
 	newPolicyStmt                       *sql.Stmt
 	newTenantStmt                       *sql.Stmt
@@ -398,7 +477,9 @@ type Queries struct {
 	newUserFromAzureADStmt              *sql.Stmt
 	removeUserFromTenantStmt            *sql.Stmt
 	scopeUserToTenantStmt               *sql.Stmt
+	updateApplicationStmt               *sql.Stmt
 	updateDomainStmt                    *sql.Stmt
+	updateObjectStmt                    *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
@@ -408,12 +489,17 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addDevicesToGroupStmt:               q.addDevicesToGroupStmt,
 		addDomainToTenantStmt:               q.addDomainToTenantStmt,
 		addPoliciesToGroupStmt:              q.addPoliciesToGroupStmt,
+		createObjectStmt:                    q.createObjectStmt,
 		createRawCertStmt:                   q.createRawCertStmt,
+		deleteApplicationStmt:               q.deleteApplicationStmt,
 		deleteDomainStmt:                    q.deleteDomainStmt,
 		deleteGroupStmt:                     q.deleteGroupStmt,
 		deletePolicyStmt:                    q.deletePolicyStmt,
 		deleteUserStmt:                      q.deleteUserStmt,
 		deleteUserInTenantStmt:              q.deleteUserInTenantStmt,
+		getApplicationStmt:                  q.getApplicationStmt,
+		getApplicationTargetsStmt:           q.getApplicationTargetsStmt,
+		getApplicationsStmt:                 q.getApplicationsStmt,
 		getDeviceStmt:                       q.getDeviceStmt,
 		getDeviceGroupsStmt:                 q.getDeviceGroupsStmt,
 		getDevicePoliciesStmt:               q.getDevicePoliciesStmt,
@@ -421,6 +507,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getDevicesInGroupStmt:               q.getDevicesInGroupStmt,
 		getGroupStmt:                        q.getGroupStmt,
 		getGroupsStmt:                       q.getGroupsStmt,
+		getObjectStmt:                       q.getObjectStmt,
 		getPoliciesStmt:                     q.getPoliciesStmt,
 		getPoliciesInGroupStmt:              q.getPoliciesInGroupStmt,
 		getPolicyStmt:                       q.getPolicyStmt,
@@ -434,6 +521,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getUserTenantsStmt:                  q.getUserTenantsStmt,
 		getUsersInTenantStmt:                q.getUsersInTenantStmt,
 		getUsersInTenantByQueryStmt:         q.getUsersInTenantByQueryStmt,
+		newApplicationStmt:                  q.newApplicationStmt,
 		newGroupStmt:                        q.newGroupStmt,
 		newPolicyStmt:                       q.newPolicyStmt,
 		newTenantStmt:                       q.newTenantStmt,
@@ -441,6 +529,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		newUserFromAzureADStmt:              q.newUserFromAzureADStmt,
 		removeUserFromTenantStmt:            q.removeUserFromTenantStmt,
 		scopeUserToTenantStmt:               q.scopeUserToTenantStmt,
+		updateApplicationStmt:               q.updateApplicationStmt,
 		updateDomainStmt:                    q.updateDomainStmt,
+		updateObjectStmt:                    q.updateObjectStmt,
 	}
 }

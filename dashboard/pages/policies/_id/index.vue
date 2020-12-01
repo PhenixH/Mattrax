@@ -10,8 +10,8 @@
 
     <p class="field-title">Type:</p>
     <select
-      name="type"
       v-model="policy.type"
+      name="type"
       :disabled="!$store.state.dashboard.editting"
     >
       <option v-for="(v, key) in payloads_json" :key="key" :value="key">

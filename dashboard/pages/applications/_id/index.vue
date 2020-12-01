@@ -7,6 +7,22 @@
       type="text"
       :disabled="!$store.state.dashboard.editting"
     />
+
+    <p class="field-title">Publisher:</p>
+    <input
+      name="publisher"
+      :value="app.publisher"
+      type="text"
+      :disabled="!$store.state.dashboard.editting"
+    />
+
+    <p class="field-title">Description:</p>
+    <input
+      name="description"
+      :value="app.description"
+      type="text"
+      :disabled="!$store.state.dashboard.editting"
+    />
   </div>
 </template>
 
@@ -24,10 +40,10 @@ export default Vue.extend({
   },
   methods: {
     async save(patch: object) {
-      // await this.$store.dispatch('policies/patchPolicy', {
-      //   id: this.$route.params.id,
-      //   patch,
-      // })
+      await this.$store.dispatch('applications/patch', {
+        id: this.$route.params.id,
+        patch,
+      })
 
       Object.keys(patch).forEach((key) => (this.app[key] = patch[key]))
     },

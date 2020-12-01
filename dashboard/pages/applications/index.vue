@@ -8,11 +8,13 @@
       <h1>Applications</h1>
     </PageHead>
     <PageNav>
-      <button @click="$router.push('/applications/new')">Add Application</button>
+      <button @click="$router.push('/applications/new')">
+        Add Application
+      </button>
       <input type="text" placeholder="Search..." disabled />
     </PageNav>
     <div class="page-body">
-      <TableView :headings="['Name', 'Supported Platforms']">
+      <TableView :headings="['Name', 'Publisher']">
         <tr v-for="app in applications" :key="app.id">
           <td>
             <NuxtLink :to="'/applications/' + app.id" exact>{{
@@ -20,7 +22,7 @@
             }}</NuxtLink>
           </td>
           <td>
-            
+            {{ app.publisher }}
           </td>
         </tr>
       </TableView>
@@ -41,7 +43,7 @@ export default Vue.extend({
   },
   created() {
     this.$store
-      .dispatch('policies/getAll')
+      .dispatch('applications/getAll')
       .then((applications) => {
         this.applications = applications
         this.loading = false

@@ -108,6 +108,16 @@ CREATE TABLE devices (
 
 -- CREATE TRIGGER devices_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON devices FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
+CREATE TABLE objects (
+    id TEXT PRIMARY KEY DEFAULT short_uuid(),
+    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
+    filename TEXT,
+    data bytea,
+    UNIQUE (id, tenant_id)
+);
+
+-- TODO: Audit Table
+
 -- TODO: Use | CREATE TYPE policy_type AS ENUM ('wifi', 'custom');
 
 CREATE TABLE policies (
@@ -121,6 +131,30 @@ CREATE TABLE policies (
 );
 
 -- CREATE TRIGGER policies_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON policies FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TABLE applications (
+    id TEXT PRIMARY KEY DEFAULT short_uuid(),
+    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    publisher TEXT,
+    UNIQUE (tenant_id, name)
+);
+
+-- TODO: Audit Table
+
+-- CREATE TYPE application_target_type AS ENUM ('MSI', 'Microsoft Business Store');
+-- type application_target_type NOT NULL,
+ -- protocol management_protocol NOT NULL,
+
+CREATE TABLE application_target (
+    app_id TEXT REFERENCES applications(id) NOT NULL,
+    tenant_id TEXT REFERENCES tenants(id) NOT NULL,
+    msi_file TEXT REFERENCES objects(id),
+    store_id TEXT
+);
+
+-- TODO: Audit Table
 
 CREATE TABLE groups (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),

@@ -18,7 +18,9 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching groups from server'))
+            reject(
+              errorForStatus(context, res, 'Error fetching groups from server')
+            )
             return
           }
 
@@ -48,7 +50,9 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching group from server'))
+            reject(
+              errorForStatus(context, res, 'Error fetching group from server')
+            )
             return
           }
 
@@ -80,7 +84,11 @@ export const actions = {
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
-              errorForStatus(res, 'Error fetching devices policies from server')
+              errorForStatus(
+                context,
+                res,
+                'Error fetching devices policies from server'
+              )
             )
             return
           }
@@ -113,7 +121,9 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error creating new group on server'))
+            reject(
+              errorForStatus(context, res, 'Error creating new group on server')
+            )
             return
           }
 
@@ -146,7 +156,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error patching group on server'))
+            reject(
+              errorForStatus(context, res, 'Error patching group on server')
+            )
             return
           }
 
@@ -177,7 +189,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error deleting group on server'))
+            reject(
+              errorForStatus(context, res, 'Error deleting group on server')
+            )
             return
           }
 

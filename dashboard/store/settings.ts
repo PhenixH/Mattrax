@@ -19,7 +19,11 @@ export const actions = {
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
-              errorForStatus(res, 'Error fetching tenant settings from server')
+              errorForStatus(
+                context,
+                res,
+                'Error fetching tenant settings from server'
+              )
             )
             return
           }
@@ -52,7 +56,11 @@ export const actions = {
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
             reject(
-              errorForStatus(res, 'Error patching tenant settings on server')
+              errorForStatus(
+                context,
+                res,
+                'Error patching tenant settings on server'
+              )
             )
             return
           }
@@ -75,7 +83,11 @@ export const actions = {
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
-              errorForStatus(res, 'Error fetching user settings from server')
+              errorForStatus(
+                context,
+                res,
+                'Error fetching user settings from server'
+              )
             )
             return
           }
@@ -101,7 +113,11 @@ export const actions = {
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
             reject(
-              errorForStatus(res, 'Error patching user settings on server')
+              errorForStatus(
+                context,
+                res,
+                'Error patching user settings on server'
+              )
             )
             return
           }
@@ -125,6 +141,7 @@ export const actions = {
           if (res.status !== 200) {
             reject(
               errorForStatus(
+                context,
                 res,
                 'Error fetching overview settings from server'
               )

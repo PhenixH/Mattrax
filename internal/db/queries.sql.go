@@ -55,6 +55,21 @@ func (q *Queries) AddPoliciesToGroup(ctx context.Context, arg AddPoliciesToGroup
 	return err
 }
 
+const createObject = `-- name: CreateObject :exec
+INSERT INTO objects(tenant_id, filename, data) VALUES ($1, $2, $3) RETURNING id
+`
+
+type CreateObjectParams struct {
+	TenantID string      `json:"tenant_id"`
+	Filename null.String `json:"filename"`
+	Data     []byte      `json:"data"`
+}
+
+func (q *Queries) CreateObject(ctx context.Context, arg CreateObjectParams) error {
+	_, err := q.exec(ctx, q.createObjectStmt, createObject, arg.TenantID, arg.Filename, arg.Data)
+	return err
+}
+
 const createRawCert = `-- name: CreateRawCert :exec
 INSERT INTO certificates(id, cert, key) VALUES ($1, $2, $3)
 `
@@ -67,6 +82,20 @@ type CreateRawCertParams struct {
 
 func (q *Queries) CreateRawCert(ctx context.Context, arg CreateRawCertParams) error {
 	_, err := q.exec(ctx, q.createRawCertStmt, createRawCert, arg.ID, arg.Cert, arg.Key)
+	return err
+}
+
+const deleteApplication = `-- name: DeleteApplication :exec
+DELETE FROM applications WHERE id = $1 AND tenant_id = $2
+`
+
+type DeleteApplicationParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+func (q *Queries) DeleteApplication(ctx context.Context, arg DeleteApplicationParams) error {
+	_, err := q.exec(ctx, q.deleteApplicationStmt, deleteApplication, arg.ID, arg.TenantID)
 	return err
 }
 
@@ -133,6 +162,104 @@ type DeleteUserInTenantParams struct {
 func (q *Queries) DeleteUserInTenant(ctx context.Context, arg DeleteUserInTenantParams) error {
 	_, err := q.exec(ctx, q.deleteUserInTenantStmt, deleteUserInTenant, arg.UPN, arg.TenantID)
 	return err
+}
+
+const getApplication = `-- name: GetApplication :one
+SELECT name, description, publisher FROM applications WHERE id = $1 AND tenant_id = $2 LIMIT 1
+`
+
+type GetApplicationParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+type GetApplicationRow struct {
+	Name        null.String `json:"name"`
+	Description null.String `json:"description"`
+	Publisher   null.String `json:"publisher"`
+}
+
+func (q *Queries) GetApplication(ctx context.Context, arg GetApplicationParams) (GetApplicationRow, error) {
+	row := q.queryRow(ctx, q.getApplicationStmt, getApplication, arg.ID, arg.TenantID)
+	var i GetApplicationRow
+	err := row.Scan(&i.Name, &i.Description, &i.Publisher)
+	return i, err
+}
+
+const getApplicationTargets = `-- name: GetApplicationTargets :many
+SELECT msi_file, store_id FROM application_target WHERE app_id = $1 AND tenant_id = $2
+`
+
+type GetApplicationTargetsParams struct {
+	AppID    string `json:"app_id"`
+	TenantID string `json:"tenant_id"`
+}
+
+type GetApplicationTargetsRow struct {
+	MsiFile null.String `json:"msi_file"`
+	StoreID null.String `json:"store_id"`
+}
+
+func (q *Queries) GetApplicationTargets(ctx context.Context, arg GetApplicationTargetsParams) ([]GetApplicationTargetsRow, error) {
+	rows, err := q.query(ctx, q.getApplicationTargetsStmt, getApplicationTargets, arg.AppID, arg.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetApplicationTargetsRow
+	for rows.Next() {
+		var i GetApplicationTargetsRow
+		if err := rows.Scan(&i.MsiFile, &i.StoreID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getApplications = `-- name: GetApplications :many
+SELECT id, name, publisher FROM applications WHERE tenant_id = $1 LIMIT $2 OFFSET $3
+`
+
+type GetApplicationsParams struct {
+	TenantID string `json:"tenant_id"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
+}
+
+type GetApplicationsRow struct {
+	ID        string      `json:"id"`
+	Name      null.String `json:"name"`
+	Publisher null.String `json:"publisher"`
+}
+
+func (q *Queries) GetApplications(ctx context.Context, arg GetApplicationsParams) ([]GetApplicationsRow, error) {
+	rows, err := q.query(ctx, q.getApplicationsStmt, getApplications, arg.TenantID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetApplicationsRow
+	for rows.Next() {
+		var i GetApplicationsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Publisher); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getDevice = `-- name: GetDevice :one
@@ -381,6 +508,29 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]GetGrou
 	return items, nil
 }
 
+const getObject = `-- name: GetObject :one
+
+SELECT filename, data FROM objects WHERE id = $1 AND tenant_id = $2 LIMIT 1
+`
+
+type GetObjectParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+type GetObjectRow struct {
+	Filename null.String `json:"filename"`
+	Data     []byte      `json:"data"`
+}
+
+//------ Object Actions
+func (q *Queries) GetObject(ctx context.Context, arg GetObjectParams) (GetObjectRow, error) {
+	row := q.queryRow(ctx, q.getObjectStmt, getObject, arg.ID, arg.TenantID)
+	var i GetObjectRow
+	err := row.Scan(&i.Filename, &i.Data)
+	return i, err
+}
+
 const getPolicies = `-- name: GetPolicies :many
 SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 `
@@ -460,7 +610,7 @@ func (q *Queries) GetPoliciesInGroup(ctx context.Context, arg GetPoliciesInGroup
 }
 
 const getPolicy = `-- name: GetPolicy :one
-SELECT id, name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1
+SELECT name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1
 `
 
 type GetPolicyParams struct {
@@ -469,7 +619,6 @@ type GetPolicyParams struct {
 }
 
 type GetPolicyRow struct {
-	ID          string          `json:"id"`
 	Name        string          `json:"name"`
 	Type        string          `json:"type"`
 	Payload     json.RawMessage `json:"payload"`
@@ -480,7 +629,6 @@ func (q *Queries) GetPolicy(ctx context.Context, arg GetPolicyParams) (GetPolicy
 	row := q.queryRow(ctx, q.getPolicyStmt, getPolicy, arg.ID, arg.TenantID)
 	var i GetPolicyRow
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Type,
 		&i.Payload,
@@ -775,6 +923,24 @@ func (q *Queries) GetUsersInTenantByQuery(ctx context.Context, arg GetUsersInTen
 	return items, nil
 }
 
+const newApplication = `-- name: NewApplication :one
+
+INSERT INTO applications(name, tenant_id) VALUES ($1, $2) RETURNING id
+`
+
+type NewApplicationParams struct {
+	Name     null.String `json:"name"`
+	TenantID string      `json:"tenant_id"`
+}
+
+//------ Application Actions
+func (q *Queries) NewApplication(ctx context.Context, arg NewApplicationParams) (string, error) {
+	row := q.queryRow(ctx, q.newApplicationStmt, newApplication, arg.Name, arg.TenantID)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const newGroup = `-- name: NewGroup :one
 
 INSERT INTO groups(name, tenant_id) VALUES ($1, $2) RETURNING id
@@ -895,6 +1061,29 @@ func (q *Queries) ScopeUserToTenant(ctx context.Context, arg ScopeUserToTenantPa
 	return err
 }
 
+const updateApplication = `-- name: UpdateApplication :exec
+UPDATE applications SET name=COALESCE($3, name), description=COALESCE($4, description), publisher=COALESCE($5, publisher) WHERE id = $1 AND tenant_id=$2
+`
+
+type UpdateApplicationParams struct {
+	ID          string      `json:"id"`
+	TenantID    string      `json:"tenant_id"`
+	Name        null.String `json:"name"`
+	Description null.String `json:"description"`
+	Publisher   null.String `json:"publisher"`
+}
+
+func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationParams) error {
+	_, err := q.exec(ctx, q.updateApplicationStmt, updateApplication,
+		arg.ID,
+		arg.TenantID,
+		arg.Name,
+		arg.Description,
+		arg.Publisher,
+	)
+	return err
+}
+
 const updateDomain = `-- name: UpdateDomain :exec
 UPDATE tenant_domains SET verified=$3 WHERE domain=$1 AND tenant_id=$2
 `
@@ -907,5 +1096,26 @@ type UpdateDomainParams struct {
 
 func (q *Queries) UpdateDomain(ctx context.Context, arg UpdateDomainParams) error {
 	_, err := q.exec(ctx, q.updateDomainStmt, updateDomain, arg.Domain, arg.TenantID, arg.Verified)
+	return err
+}
+
+const updateObject = `-- name: UpdateObject :exec
+UPDATE objects SET filename=$3, data=$4 WHERE id=$1 AND tenant_id=$2
+`
+
+type UpdateObjectParams struct {
+	ID       string      `json:"id"`
+	TenantID string      `json:"tenant_id"`
+	Filename null.String `json:"filename"`
+	Data     []byte      `json:"data"`
+}
+
+func (q *Queries) UpdateObject(ctx context.Context, arg UpdateObjectParams) error {
+	_, err := q.exec(ctx, q.updateObjectStmt, updateObject,
+		arg.ID,
+		arg.TenantID,
+		arg.Filename,
+		arg.Data,
+	)
 	return err
 }

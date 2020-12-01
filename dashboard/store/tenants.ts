@@ -55,7 +55,11 @@ export const actions = {
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
-              errorForStatus(res, 'The create tenant request was rejected')
+              errorForStatus(
+                context,
+                res,
+                'The create tenant request was rejected'
+              )
             )
             return
           }
@@ -84,7 +88,13 @@ export const actions = {
       })
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'The get tenants request was rejected'))
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'The get tenants request was rejected'
+              )
+            )
             return
           }
 
@@ -116,7 +126,13 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'The add domain request was rejected'))
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'The add domain request was rejected'
+              )
+            )
             return
           }
 
@@ -147,7 +163,11 @@ export const actions = {
         .then(async (res) => {
           if (res.status !== 200) {
             reject(
-              errorForStatus(res, 'The verify domain request was rejected')
+              errorForStatus(
+                context,
+                res,
+                'The verify domain request was rejected'
+              )
             )
             return
           }
@@ -179,7 +199,11 @@ export const actions = {
         .then((res) => {
           if (res.status !== 204) {
             reject(
-              errorForStatus(res, 'The delete domain request was rejected')
+              errorForStatus(
+                context,
+                res,
+                'The delete domain request was rejected'
+              )
             )
             return
           }

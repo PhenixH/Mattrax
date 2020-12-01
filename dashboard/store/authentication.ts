@@ -81,7 +81,9 @@ export const actions = {
       })
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'The login request was rejected'))
+            reject(
+              errorForStatus(context, res, 'The login request was rejected')
+            )
             return
           }
 

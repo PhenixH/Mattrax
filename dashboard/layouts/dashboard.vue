@@ -6,6 +6,9 @@
       <div v-if="$store.state.dashboard.error">
         <h1>An Error Occured</h1>
         <p>{{ $store.state.dashboard.error }}</p>
+        <p v-if="$store.state.dashboard.errorTraceID !== null">
+          Trace ID: {{ $store.state.dashboard.errorTraceID }}
+        </p>
       </div>
       <div v-else>
         <Nuxt ref="body" />
@@ -171,6 +174,16 @@ main.icons {
 
 .danger {
   color: #dc3545;
+  font-weight: 600;
+}
+
+.info {
+  color: blue;
+  font-weight: 600;
+}
+
+.safe {
+  color: green;
   font-weight: 600;
 }
 

@@ -49,6 +49,8 @@
       pattern="^[a-zA-Z][a-zA-Z\d-]{1,22}[a-zA-Z\d]$"
     />
     <button @click="addDomain()">Add Domain</button>
+
+    <p>Tenant ID: {{ $store.state.tenants.tenant.id }}</p>
   </div>
 </template>
 

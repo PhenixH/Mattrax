@@ -21,13 +21,15 @@ import (
 
 const MaxJSONBodySize = 2097152
 
+const MaxBodySize = 1000000000
+
 func APIHeaders(srv *mattrax.Server) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if srv.Args.Debug {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization,Access-Control-Request-Headers")
-				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+				w.Header().Set("Access-Control-Allow-Headers", "content-type, authorization, access-control-request-headers")
+				w.Header().Set("Access-Control-Expose-Headers", "x-request-id, x-filename")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE") // TEMP: Bypass for another bug
 			}
 			w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -38,7 +40,15 @@ func APIHeaders(srv *mattrax.Server) mux.MiddlewareFunc {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
+
+			if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+				r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
+			} else if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+				r.Body = http.MaxBytesReader(w, r.Body, MaxBodySize)
+			} else {
+				r.Body = http.MaxBytesReader(w, r.Body, 0)
+			}
+
 			next.ServeHTTP(w, r)
 		})
 	}

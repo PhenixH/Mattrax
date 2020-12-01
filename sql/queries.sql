@@ -62,6 +62,17 @@ SELECT id, display_name, primary_domain, description FROM tenants INNER JOIN ten
 -- name: RemoveUserFromTenant :exec
 DELETE FROM tenant_users WHERE user_upn=$1 AND tenant_id=$2;
 
+-------- Object Actions
+
+-- name: GetObject :one
+SELECT filename, data FROM objects WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: CreateObject :exec
+INSERT INTO objects(tenant_id, filename, data) VALUES ($1, $2, $3) RETURNING id;
+
+-- name: UpdateObject :exec
+UPDATE objects SET filename=$3, data=$4 WHERE id=$1 AND tenant_id=$2;
+
 -------- Group Actions
 
 -- name: NewGroup :one
@@ -97,10 +108,30 @@ INSERT INTO policies(name, type, tenant_id) VALUES ($1, $2, $3) RETURNING id;
 SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetPolicy :one
-SELECT id, name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+SELECT name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
 -- name: DeletePolicy :exec
 DELETE FROM policies WHERE id = $1 AND tenant_id = $2;
+
+-------- Application Actions
+
+-- name: NewApplication :one
+INSERT INTO applications(name, tenant_id) VALUES ($1, $2) RETURNING id;
+
+-- name: GetApplications :many
+SELECT id, name, publisher FROM applications WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+
+-- name: GetApplication :one
+SELECT name, description, publisher FROM applications WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: GetApplicationTargets :many
+SELECT msi_file, store_id FROM application_target WHERE app_id = $1 AND tenant_id = $2;
+
+-- name: UpdateApplication :exec
+UPDATE applications SET name=COALESCE($3, name), description=COALESCE($4, description), publisher=COALESCE($5, publisher) WHERE id = $1 AND tenant_id=$2;
+
+-- name: DeleteApplication :exec
+DELETE FROM applications WHERE id = $1 AND tenant_id = $2;
 
 -------- Device Actions
 

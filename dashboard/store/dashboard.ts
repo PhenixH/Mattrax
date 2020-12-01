@@ -1,5 +1,6 @@
 interface State {
   error: Error | null
+  errorTraceID: string | null
   menuActive: Boolean
   editting: Boolean | null
   deletable: Boolean
@@ -7,6 +8,7 @@ interface State {
 
 export const state = (): State => ({
   error: null,
+  errorTraceID: null,
   menuActive: sessionStorage.getItem('menuActive') !== 'false',
   editting: null,
   deletable: false,
@@ -17,8 +19,13 @@ export const mutations = {
     state.error = error
   },
 
+  setErrorTraceID(state: State, errorTraceID: string) {
+    state.errorTraceID = errorTraceID
+  },
+
   clearError(state: State) {
     state.error = null
+    state.errorTraceID = null
   },
 
   toggleMenuActive(state: State) {

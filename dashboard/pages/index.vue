@@ -4,11 +4,18 @@
       <h1 class="title">Mattrax Dashboard</h1>
       <div class="links">
         <a
-          href="https://github.com/mattrax/Mattrax"
+          href="https://mattrax.otbeaumont.me"
           target="_blank"
           class="button--grey"
         >
-          GitHub
+          Website
+        </a>
+        <a
+          href="https://mattrax.otbeaumont.me?slack"
+          target="_blank"
+          class="button--grey"
+        >
+          Join Slack
         </a>
         <a
           href="https://github.com/mattrax/Mattrax/issues/new"
@@ -16,13 +23,6 @@
           class="button--grey"
         >
           Report Bug
-        </a>
-        <a
-          href="mailto:oscar@otbeaumont.me?subject=Mattrax Support:"
-          target="_blank"
-          class="button--grey"
-        >
-          Support
         </a>
       </div>
     </div>

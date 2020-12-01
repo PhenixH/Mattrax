@@ -18,7 +18,13 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching policies from server'))
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error fetching policies from server'
+              )
+            )
             return
           }
 
@@ -48,7 +54,9 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200) {
-            reject(errorForStatus(res, 'Error fetching policy from server'))
+            reject(
+              errorForStatus(context, res, 'Error fetching policy from server')
+            )
             return
           }
 
@@ -80,7 +88,13 @@ export const actions = {
       )
         .then(async (res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error creating new policy on server'))
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error creating new policy on server'
+              )
+            )
             return
           }
 
@@ -113,7 +127,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error patching policy on server'))
+            reject(
+              errorForStatus(context, res, 'Error patching policy on server')
+            )
             return
           }
 
@@ -144,7 +160,9 @@ export const actions = {
       )
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
-            reject(errorForStatus(res, 'Error deleting policy on server'))
+            reject(
+              errorForStatus(context, res, 'Error deleting policy on server')
+            )
             return
           }
 

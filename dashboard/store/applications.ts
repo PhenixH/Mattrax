@@ -8,72 +8,7 @@ export const actions = {
         process.env.baseUrl +
           '/' +
           context.rootState.tenants.tenant.id +
-          '/devices',
-        {
-          headers: new Headers({
-            Authorization:
-              'Bearer ' + context.rootState.authentication.authToken,
-          }),
-        }
-      )
-        .then(async (res) => {
-          if (res.status !== 200) {
-            reject(
-              errorForStatus(context, res, 'Error fetching devices from server')
-            )
-            return
-          }
-
-          const devices = await res.json()
-          resolve(devices)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject(new Error('An error occurred communicating with the server'))
-        })
-    })
-  },
-  getByID(context: any, deviceID: string) {
-    return new Promise((resolve, reject) => {
-      fetch(
-        process.env.baseUrl +
-          '/' +
-          context.rootState.tenants.tenant.id +
-          '/device/' +
-          encodeURI(deviceID),
-        {
-          headers: new Headers({
-            Authorization:
-              'Bearer ' + context.rootState.authentication.authToken,
-          }),
-        }
-      )
-        .then(async (res) => {
-          if (res.status !== 200) {
-            reject(
-              errorForStatus(context, res, 'Error fetching device from server')
-            )
-            return
-          }
-
-          const device = await res.json()
-          resolve(device)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject(new Error('An error occurred communicating with the server'))
-        })
-    })
-  },
-  getInformationByID(context: any, deviceID: string) {
-    return new Promise((resolve, reject) => {
-      fetch(
-        process.env.baseUrl +
-          '/' +
-          context.rootState.tenants.tenant.id +
-          '/device/' +
-          encodeURI(deviceID) +
-          '/info',
+          '/applications',
         {
           headers: new Headers({
             Authorization:
@@ -87,14 +22,13 @@ export const actions = {
               errorForStatus(
                 context,
                 res,
-                'Error fetching device information from server'
+                'Error fetching applications from server'
               )
             )
             return
           }
 
-          const deviceInfo = await res.json()
-          resolve(deviceInfo)
+          resolve(await res.json())
         })
         .catch((err) => {
           console.error(err)
@@ -102,15 +36,14 @@ export const actions = {
         })
     })
   },
-  getScopeByID(context: any, deviceID: string) {
+  getByID(context: any, applicationID: string) {
     return new Promise((resolve, reject) => {
       fetch(
         process.env.baseUrl +
           '/' +
           context.rootState.tenants.tenant.id +
-          '/device/' +
-          encodeURI(deviceID) +
-          '/scope',
+          '/application/' +
+          encodeURI(applicationID),
         {
           headers: new Headers({
             Authorization:
@@ -124,14 +57,13 @@ export const actions = {
               errorForStatus(
                 context,
                 res,
-                'Error fetching device scope from server'
+                'Error fetching application from server'
               )
             )
             return
           }
 
-          const deviceScope = await res.json()
-          resolve(deviceScope)
+          resolve(await res.json())
         })
         .catch((err) => {
           console.error(err)
@@ -139,13 +71,51 @@ export const actions = {
         })
     })
   },
-  patchDevice(context: any, params: any) {
+  create(context: any, createApplicationRequest: any) {
     return new Promise((resolve, reject) => {
       fetch(
         process.env.baseUrl +
           '/' +
           context.rootState.tenants.tenant.id +
-          '/device/' +
+          '/applications',
+        {
+          method: 'POST',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify(createApplicationRequest),
+        }
+      )
+        .then(async (res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error creating new application on server'
+              )
+            )
+            return
+          }
+
+          const body = await res.json()
+          resolve(body.application_id)
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  patch(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/application/' +
           encodeURI(params.id),
         {
           method: 'PATCH',
@@ -160,7 +130,11 @@ export const actions = {
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
             reject(
-              errorForStatus(context, res, 'Error patching device on server')
+              errorForStatus(
+                context,
+                res,
+                'Error patching application on server'
+              )
             )
             return
           }
@@ -173,13 +147,13 @@ export const actions = {
         })
     })
   },
-  deleteDevice(context: any, id: string) {
+  delete(context: any, id: string) {
     return new Promise((resolve, reject) => {
       fetch(
         process.env.baseUrl +
           '/' +
           context.rootState.tenants.tenant.id +
-          '/device/' +
+          '/application/' +
           encodeURI(id),
         {
           method: 'DELETE',
@@ -193,7 +167,11 @@ export const actions = {
         .then((res) => {
           if (res.status !== 200 && res.status !== 204) {
             reject(
-              errorForStatus(context, res, 'Error deleting device on server')
+              errorForStatus(
+                context,
+                res,
+                'Error deleting application on server'
+              )
             )
             return
           }

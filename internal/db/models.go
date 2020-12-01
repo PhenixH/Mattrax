@@ -90,6 +90,21 @@ func (e *UserPermissionLevel) Scan(src interface{}) error {
 	return nil
 }
 
+type Application struct {
+	ID          string      `json:"id"`
+	TenantID    string      `json:"tenant_id"`
+	Name        null.String `json:"name"`
+	Description null.String `json:"description"`
+	Publisher   null.String `json:"publisher"`
+}
+
+type ApplicationTarget struct {
+	AppID    string      `json:"app_id"`
+	TenantID string      `json:"tenant_id"`
+	MsiFile  null.String `json:"msi_file"`
+	StoreID  null.String `json:"store_id"`
+}
+
 type Certificate struct {
 	ID   string `json:"id"`
 	Cert []byte `json:"cert"`
@@ -136,6 +151,13 @@ type GroupDevice struct {
 type GroupPolicy struct {
 	GroupID  string `json:"group_id"`
 	PolicyID string `json:"policy_id"`
+}
+
+type Object struct {
+	ID       string      `json:"id"`
+	TenantID string      `json:"tenant_id"`
+	Filename null.String `json:"filename"`
+	Data     []byte      `json:"data"`
 }
 
 type Policy struct {
