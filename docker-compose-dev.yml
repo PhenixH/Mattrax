@@ -1,0 +1,46 @@
+version: "3.8"
+services:
+  mattrax:
+    build: .
+    ports:
+      - "443:443"
+      - "8443:8443"
+    environment:
+      DOMAIN: mdm.otbeaumont.me
+      DB: postgres://mattrax_db:password@postgres/mattrax?sslmode=disable
+      ZIPKIN: http://zipkin:9411/api/v2/spans
+    volumes:
+      - database-data:/var/lib/postgresql/data/
+      - type: bind
+        source: ./certs
+        target: /certs
+        read_only: true
+    depends_on:
+      - postgres
+      - zipkin
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: mattrax_db
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mattrax
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - database-data:/var/lib/postgresql/data/
+      - type: bind
+        source: ./sql/schema.sql
+        target: /docker-entrypoint-initdb.d/schema.sql
+        read_only: true
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 3s
+      timeout: 5s
+      retries: 5
+  zipkin:
+    image: openzipkin/zipkin-slim
+    ports:
+      - 127.0.0.1:9411:9411
+
+volumes:
+  database-data: {}
