@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 	"github.com/mattrax/Mattrax/internal/middleware"
 	"github.com/mattrax/Mattrax/internal/settings"
 	"github.com/mattrax/Mattrax/mdm"
+	"github.com/mattrax/Mattrax/pkg/null"
 	"github.com/openzipkin/zipkin-go"
 	zipkinhttp "github.com/openzipkin/zipkin-go/middleware/http"
 	"github.com/openzipkin/zipkin-go/model"
@@ -23,12 +27,29 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
 
 func main() {
 	var args mattrax.Arguments
 	arg.MustParse(&args)
 	// TODO: Verify arguments (eg. Domain is domain, cert paths exists, valid listen addr)
+
+	fmt.Println(args)
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if args.Debug {
@@ -81,6 +102,30 @@ func main() {
 	if srv.Auth, err = authentication.New(srv.Cert, srv.Cache, srv.DB, args.Domain, args.Debug); err != nil {
 		log.Fatal().Err(err).Msg("Error starting authentication service")
 	}
+
+	if userCount, err := srv.DB.GetUserCount(context.Background()); err != nil {
+		log.Fatal().Err(err).Msg("Error getting user count")
+	} else if userCount == 0 {
+		password := RandStringBytes(6)
+
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), 15)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error hashing default user password")
+		}
+
+		if err := srv.DB.NewGlobalUser(context.Background(), db.NewGlobalUserParams{
+			UPN:      "mattrax@otbeaumont.me",
+			Fullname: "Mattrax Admin",
+			Password: null.String{
+				String: string(passwordHash),
+				Valid:  true,
+			},
+		}); err != nil {
+			log.Fatal().Err(err).Msg("Error creating default user")
+		}
+		log.Info().Str("upn", "mattrax@otbeaumont.me").Str("password", password).Msg("Created default administrator account")
+	}
+
 	srv.GlobalRouter.Use(middleware.Logging())
 	srv.GlobalRouter.Use(middleware.Headers())
 	if tracer != nil {

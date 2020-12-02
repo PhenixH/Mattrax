@@ -1,5 +1,8 @@
 -- DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
 
+-- name: GetUserCount :one
+SELECT COUNT(*) FROM users;
+
 -------- Tenant
 
 -- name: GetTenant :one
@@ -24,6 +27,9 @@ DELETE FROM tenant_domains WHERE domain=$1 AND tenant_id=$2;
 
 -- name: NewUser :exec
 INSERT INTO users(upn, fullname, password, tenant_id) VALUES ($1, $2, $3, $4);
+
+-- name: NewGlobalUser :exec
+INSERT INTO users(upn, fullname, password) VALUES ($1, $2, $3);
 
 -- name: GetUser :one
 SELECT upn, fullname, disabled, azuread_oid FROM users WHERE upn = $1 LIMIT 1;

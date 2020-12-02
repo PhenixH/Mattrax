@@ -112,6 +112,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
 	}
+	if q.getUserCountStmt, err = db.PrepareContext(ctx, getUserCount); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserCount: %w", err)
+	}
 	if q.getUserPermissionLevelForTenantStmt, err = db.PrepareContext(ctx, getUserPermissionLevelForTenant); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserPermissionLevelForTenant: %w", err)
 	}
@@ -129,6 +132,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.newApplicationStmt, err = db.PrepareContext(ctx, newApplication); err != nil {
 		return nil, fmt.Errorf("error preparing query NewApplication: %w", err)
+	}
+	if q.newGlobalUserStmt, err = db.PrepareContext(ctx, newGlobalUser); err != nil {
+		return nil, fmt.Errorf("error preparing query NewGlobalUser: %w", err)
 	}
 	if q.newGroupStmt, err = db.PrepareContext(ctx, newGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query NewGroup: %w", err)
@@ -315,6 +321,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUserStmt: %w", cerr)
 		}
 	}
+	if q.getUserCountStmt != nil {
+		if cerr := q.getUserCountStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserCountStmt: %w", cerr)
+		}
+	}
 	if q.getUserPermissionLevelForTenantStmt != nil {
 		if cerr := q.getUserPermissionLevelForTenantStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserPermissionLevelForTenantStmt: %w", cerr)
@@ -343,6 +354,11 @@ func (q *Queries) Close() error {
 	if q.newApplicationStmt != nil {
 		if cerr := q.newApplicationStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing newApplicationStmt: %w", cerr)
+		}
+	}
+	if q.newGlobalUserStmt != nil {
+		if cerr := q.newGlobalUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newGlobalUserStmt: %w", cerr)
 		}
 	}
 	if q.newGroupStmt != nil {
@@ -464,12 +480,14 @@ type Queries struct {
 	getTenantDomainStmt                 *sql.Stmt
 	getTenantDomainsStmt                *sql.Stmt
 	getUserStmt                         *sql.Stmt
+	getUserCountStmt                    *sql.Stmt
 	getUserPermissionLevelForTenantStmt *sql.Stmt
 	getUserSecureStmt                   *sql.Stmt
 	getUserTenantsStmt                  *sql.Stmt
 	getUsersInTenantStmt                *sql.Stmt
 	getUsersInTenantByQueryStmt         *sql.Stmt
 	newApplicationStmt                  *sql.Stmt
+	newGlobalUserStmt                   *sql.Stmt
 	newGroupStmt                        *sql.Stmt
 	newPolicyStmt                       *sql.Stmt
 	newTenantStmt                       *sql.Stmt
@@ -516,12 +534,14 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getTenantDomainStmt:                 q.getTenantDomainStmt,
 		getTenantDomainsStmt:                q.getTenantDomainsStmt,
 		getUserStmt:                         q.getUserStmt,
+		getUserCountStmt:                    q.getUserCountStmt,
 		getUserPermissionLevelForTenantStmt: q.getUserPermissionLevelForTenantStmt,
 		getUserSecureStmt:                   q.getUserSecureStmt,
 		getUserTenantsStmt:                  q.getUserTenantsStmt,
 		getUsersInTenantStmt:                q.getUsersInTenantStmt,
 		getUsersInTenantByQueryStmt:         q.getUsersInTenantByQueryStmt,
 		newApplicationStmt:                  q.newApplicationStmt,
+		newGlobalUserStmt:                   q.newGlobalUserStmt,
 		newGroupStmt:                        q.newGroupStmt,
 		newPolicyStmt:                       q.newPolicyStmt,
 		newTenantStmt:                       q.newTenantStmt,

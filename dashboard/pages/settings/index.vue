@@ -4,7 +4,7 @@
     <p v-if="info.debug_mode" class="field-title danger">
       Danger: Debug Mode Enabled
     </p>
-    <p v-if="info.debug_mode" class="field-title info">
+    <p v-if="info.cloud_mode" class="field-title info">
       Running on Mattrax Cloud
     </p>
     <p class="field-title">

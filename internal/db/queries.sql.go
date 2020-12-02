@@ -657,7 +657,6 @@ func (q *Queries) GetRawCert(ctx context.Context, id string) (GetRawCertRow, err
 
 const getTenant = `-- name: GetTenant :one
 
-
 SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1
 `
 
@@ -668,7 +667,6 @@ type GetTenantRow struct {
 	Phone         null.String `json:"phone"`
 }
 
-// DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
 //------ Tenant
 func (q *Queries) GetTenant(ctx context.Context, id string) (GetTenantRow, error) {
 	row := q.queryRow(ctx, q.getTenantStmt, getTenant, id)
@@ -757,6 +755,19 @@ func (q *Queries) GetUser(ctx context.Context, upn string) (GetUserRow, error) {
 		&i.AzureadOid,
 	)
 	return i, err
+}
+
+const getUserCount = `-- name: GetUserCount :one
+
+SELECT COUNT(*) FROM users
+`
+
+// DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
+func (q *Queries) GetUserCount(ctx context.Context) (int64, error) {
+	row := q.queryRow(ctx, q.getUserCountStmt, getUserCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getUserPermissionLevelForTenant = `-- name: GetUserPermissionLevelForTenant :one
@@ -939,6 +950,21 @@ func (q *Queries) NewApplication(ctx context.Context, arg NewApplicationParams) 
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const newGlobalUser = `-- name: NewGlobalUser :exec
+INSERT INTO users(upn, fullname, password) VALUES ($1, $2, $3)
+`
+
+type NewGlobalUserParams struct {
+	UPN      string      `json:"upn"`
+	Fullname string      `json:"fullname"`
+	Password null.String `json:"password"`
+}
+
+func (q *Queries) NewGlobalUser(ctx context.Context, arg NewGlobalUserParams) error {
+	_, err := q.exec(ctx, q.newGlobalUserStmt, newGlobalUser, arg.UPN, arg.Fullname, arg.Password)
+	return err
 }
 
 const newGroup = `-- name: NewGroup :one

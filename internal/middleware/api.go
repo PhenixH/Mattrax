@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -98,8 +97,8 @@ func RequireAuthentication(srv *mattrax.Server) mux.MiddlewareFunc {
 				return
 			}
 
-			if os.Getenv("MATTRAX_CLOUD_AUTH") != "" && os.Getenv("MATTRAX_CLOUD_AUTH") == authorizationHeader[1] {
-				if os.Getenv("MATTRAX_CLOUD_AUTH_IP") != "" && !strings.HasPrefix(r.RemoteAddr, os.Getenv("MATTRAX_CLOUD_AUTH_IP")) {
+			if srv.Args.MattraxCloudAuth != "" && srv.Args.MattraxCloudAuth == authorizationHeader[1] {
+				if srv.Args.MattraxCloudAuthIP != "" && !strings.HasPrefix(r.RemoteAddr, srv.Args.MattraxCloudAuthIP) {
 					span.Tag("err", "Mattrax Cloud token used from invalid IP. Token may have leaked!")
 					return
 				}

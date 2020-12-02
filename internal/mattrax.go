@@ -37,12 +37,16 @@ type Server struct {
 
 // Arguments are the command line flags
 type Arguments struct {
-	Domain  string `placeholder:"\"mdm.example.com\"" help:"The domain your server is accessible from"`
-	DB      string `placeholder:"\"postgres://localhost/Mattrax\"" help:"The Postgres database connection url"`
-	Addr    string `default:":443" placeholder:"\":443\"" help:"The listen address of the https server"`
-	TLSCert string `default:"./certs/tls.crt" placeholder:"\"./certs/tls.crt\"" help:"The path for the tls certificate"`
-	TLSKey  string `default:"./certs/tls.key" placeholder:"\"./certs/tls.key\"" help:"The path for the tls certificates key"`
-	Zipkin  string `default:"" placeholder:"\"http://localhost:9411/api/v2/spans\"" help:"The url of the Zipkin server. This feature is optional"`
+	Domain  string `placeholder:"\"mdm.example.com\"" arg:"env:DOMAIN" help:"The domain your server is accessible from"`
+	DB      string `placeholder:"\"postgres://localhost/Mattrax\"" arg:"env:DB" help:"The Postgres database connection url"`
+	Addr    string `default:":443" placeholder:"\":443\"" arg:"env:ADDR" help:"The listen address of the https server"`
+	TLSCert string `default:"./certs/tls.crt" placeholder:"\"./certs/tls.crt\"" harg:"env:TLS_CERT" elp:"The path for the tls certificate"`
+	TLSKey  string `default:"./certs/tls.key" placeholder:"\"./certs/tls.key\"" arg:"env:TLS_KEY" help:"The path for the tls certificates key"`
+	Zipkin  string `default:"" placeholder:"\"http://localhost:9411/api/v2/spans\"" arg:"env:ZIPKIN" help:"The url of the Zipkin server. This feature is optional"`
+
+	MattraxCloud       bool   `default:"false" arg:"env:MATTRAX_CLOUD" help:"Enable extra Saas Mattrax API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloudAuth   string `default:"" arg:"env:MATTRAX_CLOUD_AUTH" help:"Authentication key for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloudAuthIP string `default:"127.0.0.1" arg:"env:MATTRAX_CLOUD_AUTH_IP" help:"Allowed IP for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
 
 	Debug bool `help:"Enabled development mode. PLEASE DO NOT USE IN PRODUCTION!"`
 }

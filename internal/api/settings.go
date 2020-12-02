@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
@@ -32,7 +31,7 @@ func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
 		if r.Method == http.MethodGet {
 			var cmd = Response{
 				DebugMode:      srv.Args.Debug,
-				CloudMode:      os.Getenv("MATTRAX_CLOUD") == "true",
+				CloudMode:      srv.Args.MattraxCloud,
 				PrimaryDomain:  srv.Args.Domain,
 				DatabaseStatus: srv.DBConn.PingContext(r.Context()) == nil,
 				ZipkinStatus:   srv.Args.Zipkin != "",

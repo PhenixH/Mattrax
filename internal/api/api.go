@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"os"
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
@@ -31,10 +30,7 @@ func Mount(srv *mattrax.Server) {
 	rAuthed := r.PathPrefix("/").Subrouter()
 	rAuthed.Use(middleware.RequireAuthentication(srv))
 
-	if os.Getenv("MATTRAX_CLOUD") == "true" {
-		rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/tenants")
-	}
-
+	rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/tenants")
 	rAuthed.HandleFunc("/me/settings", SettingsMe(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/me/settings")
 	rAuthed.HandleFunc("/users", Users(srv)).Methods(http.MethodPost, http.MethodOptions).Name("/users")
 	rAuthed.HandleFunc("/{tenant}/users", Users(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/users")
