@@ -48,7 +48,7 @@ export default Vue.extend({
     },
   },
   methods: {
-    async save(patch: object) {
+    save(_patch: object) {
       this.$el
         .querySelectorAll("input[type='file']")
         .forEach(async (node: HTMLInputElement) => {
@@ -64,14 +64,23 @@ export default Vue.extend({
           node.value = ''
         })
     },
-    async downloadFile(object_id: string) {
+    async downloadFile(objectID: string) {
       const { blob, filename } = await this.$store.dispatch(
         'objects/get',
-        object_id
+        objectID
       )
       saveBlob(blob, filename)
     },
-    async addTarget() {},
+    addTarget() {
+      console.log(this.$refs['target-type'].value)
+      // this.app.targets.append({
+
+      // })
+      // await this.$store.dispatch('objects/upload', {
+      //   id: node.name,
+      //   file: node.files[0],
+      // })
+    },
   },
 })
 </script>

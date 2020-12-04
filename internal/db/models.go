@@ -37,6 +37,7 @@ const (
 	ManagementProtocolWindows ManagementProtocol = "windows"
 	ManagementProtocolAgent   ManagementProtocol = "agent"
 	ManagementProtocolApple   ManagementProtocol = "apple"
+	ManagementProtocolAndroid ManagementProtocol = "android"
 )
 
 func (e *ManagementProtocol) Scan(src interface{}) error {
@@ -90,6 +91,12 @@ func (e *UserPermissionLevel) Scan(src interface{}) error {
 	return nil
 }
 
+type AndroidForWorkEnrollmentState struct {
+	ID        string      `json:"id"`
+	Name      null.String `json:"name"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type Application struct {
 	ID          string      `json:"id"`
 	TenantID    string      `json:"tenant_id"`
@@ -115,11 +122,11 @@ type Device struct {
 	ID          string             `json:"id"`
 	TenantID    string             `json:"tenant_id"`
 	Protocol    ManagementProtocol `json:"protocol"`
+	State       DeviceState        `json:"state"`
 	Udid        string             `json:"udid"`
 	Name        string             `json:"name"`
 	Description null.String        `json:"description"`
 	Model       null.String        `json:"model"`
-	State       DeviceState        `json:"state"`
 	Owner       null.String        `json:"owner"`
 	AzureDid    null.String        `json:"azure_did"`
 	EnrolledAt  time.Time          `json:"enrolled_at"`
@@ -170,12 +177,13 @@ type Policy struct {
 }
 
 type Tenant struct {
-	ID            string      `json:"id"`
-	DisplayName   string      `json:"display_name"`
-	PrimaryDomain string      `json:"primary_domain"`
-	Email         null.String `json:"email"`
-	Phone         null.String `json:"phone"`
-	Description   null.String `json:"description"`
+	ID              string      `json:"id"`
+	DisplayName     string      `json:"display_name"`
+	PrimaryDomain   string      `json:"primary_domain"`
+	Email           null.String `json:"email"`
+	Phone           null.String `json:"phone"`
+	Description     null.String `json:"description"`
+	AfwEnterpriseID null.String `json:"afw_enterprise_id"`
 }
 
 type TenantDomain struct {

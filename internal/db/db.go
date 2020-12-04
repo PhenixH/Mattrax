@@ -22,6 +22,18 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.aFWCreateStateStmt, err = db.PrepareContext(ctx, aFWCreateState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWCreateState: %w", err)
+	}
+	if q.aFWGetAndRemoveStateStmt, err = db.PrepareContext(ctx, aFWGetAndRemoveState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWGetAndRemoveState: %w", err)
+	}
+	if q.aFWUpdateStateStmt, err = db.PrepareContext(ctx, aFWUpdateState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWUpdateState: %w", err)
+	}
+	if q.aFWUpdateTenantStmt, err = db.PrepareContext(ctx, aFWUpdateTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWUpdateTenant: %w", err)
+	}
 	if q.addDevicesToGroupStmt, err = db.PrepareContext(ctx, addDevicesToGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query AddDevicesToGroup: %w", err)
 	}
@@ -171,6 +183,26 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.aFWCreateStateStmt != nil {
+		if cerr := q.aFWCreateStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWCreateStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWGetAndRemoveStateStmt != nil {
+		if cerr := q.aFWGetAndRemoveStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWGetAndRemoveStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWUpdateStateStmt != nil {
+		if cerr := q.aFWUpdateStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWUpdateStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWUpdateTenantStmt != nil {
+		if cerr := q.aFWUpdateTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWUpdateTenantStmt: %w", cerr)
+		}
+	}
 	if q.addDevicesToGroupStmt != nil {
 		if cerr := q.addDevicesToGroupStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing addDevicesToGroupStmt: %w", cerr)
@@ -450,6 +482,10 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                                  DBTX
 	tx                                  *sql.Tx
+	aFWCreateStateStmt                  *sql.Stmt
+	aFWGetAndRemoveStateStmt            *sql.Stmt
+	aFWUpdateStateStmt                  *sql.Stmt
+	aFWUpdateTenantStmt                 *sql.Stmt
 	addDevicesToGroupStmt               *sql.Stmt
 	addDomainToTenantStmt               *sql.Stmt
 	addPoliciesToGroupStmt              *sql.Stmt
@@ -504,6 +540,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                                  tx,
 		tx:                                  tx,
+		aFWCreateStateStmt:                  q.aFWCreateStateStmt,
+		aFWGetAndRemoveStateStmt:            q.aFWGetAndRemoveStateStmt,
+		aFWUpdateStateStmt:                  q.aFWUpdateStateStmt,
+		aFWUpdateTenantStmt:                 q.aFWUpdateTenantStmt,
 		addDevicesToGroupStmt:               q.addDevicesToGroupStmt,
 		addDomainToTenantStmt:               q.addDomainToTenantStmt,
 		addPoliciesToGroupStmt:              q.addPoliciesToGroupStmt,

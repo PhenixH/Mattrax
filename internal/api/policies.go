@@ -12,6 +12,7 @@ import (
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
+	"github.com/mattrax/Mattrax/mdm"
 	"github.com/openzipkin/zipkin-go"
 )
 
@@ -117,7 +118,7 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 		vars := mux.Vars(r)
 
 		if r.Method == http.MethodGet {
-			user, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
+			policy, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
 				ID:       vars["pid"],
 				TenantID: vars["tenant"],
 			})
@@ -133,7 +134,7 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			if err := json.NewEncoder(w).Encode(user); err != nil {
+			if err := json.NewEncoder(w).Encode(policy); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -162,6 +163,38 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
+			// TEMP
+			policyRow, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
+				ID:       vars["pid"],
+				TenantID: vars["tenant"],
+			})
+			if err != nil {
+				log.Printf("[GetPolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving policy: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var policy = db.Policy{
+				ID:          vars["pid"],
+				TenantID:    vars["tenant"],
+				Name:        policyRow.Name,
+				Type:        policyRow.Type,
+				Payload:     policyRow.Payload,
+				Description: policyRow.Description,
+			}
+
+			for _, p := range mdm.Protocols {
+				events := p.Events()
+				if events.UpdatePolicy != nil {
+					err := events.UpdatePolicy(policy)
+					if err != nil {
+						panic(err) // TODO
+					}
+				}
+			}
+			// END TEMP
 
 			w.WriteHeader(http.StatusNoContent)
 		} else if r.Method == http.MethodDelete {

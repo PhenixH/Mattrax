@@ -25,7 +25,12 @@
       :disabled="!$store.state.dashboard.editting"
     />
 
-    <h2>Domain Management</h2>
+    <h2>MDM Protocols</h2>
+    <button @click="setupAndroidOrganisation()">
+      Configure Android for Work Organisation
+    </button>
+
+    <!--<h2>Domain Management</h2>
     <p>
       To link a domain create a TXT DNS record at the domain with the linking
       code, then click verify.
@@ -48,14 +53,22 @@
       placeholder="example.com"
       pattern="^[a-zA-Z][a-zA-Z\d-]{1,22}[a-zA-Z\d]$"
     />
-    <button @click="addDomain()">Add Domain</button>
+    <button @click="addDomain()">Add Domain</button> -->
 
-    <p>Tenant ID: {{ $store.state.tenants.tenant.id }}</p>
+    <!-- <h2>Audit Log</h2>
+    <textarea v-model="this.event_log" /> -->
+
+    <h2>Identifiers</h2>
+    <p class="field-title">Android For Work Organisation ID:</p>
+    <input :value="tenant_settings.afw_enterprise_id" disabled />
+    <p class="field-title">Mattrax Tenant ID:</p>
+    <input :value="$store.state.tenants.tenant.id" disabled />
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
+// import { fetchEventSource } from '@microsoft/fetch-event-source'
 import resource from '@/mixins/resource'
 
 export default Vue.extend({
@@ -65,9 +78,23 @@ export default Vue.extend({
       tenant_settings: {},
       domains: [],
       new_domain: '',
+      event_log: '',
     }
   },
   created() {
+    // await fetchEventSource(
+    //   process.env.baseUrl +
+    //     '/' +
+    //     this.$store.state.tenants.tenant.id +
+    //     '/settings/events',
+    //   {
+    //     headers: {
+    //         'Authorization': 'Bearer ' + this.$store.state.authentication.authToken,
+    //     },
+    //     onmessage: this.onmessage
+    //   }
+    // )
+
     this.$store
       .dispatch('settings/getForCurrentTenant')
       .then((settings) => {
@@ -77,6 +104,9 @@ export default Vue.extend({
       .catch((err) => this.$store.commit('dashboard/setError', err))
   },
   methods: {
+    onmessage(ev: any) {
+      this.event_log += ev.data + '\n'
+    },
     async save(patch: object) {
       await this.$store.dispatch('settings/updateForCurrentTenant', {
         id: this.$route.params.id,
@@ -120,6 +150,10 @@ export default Vue.extend({
       )
       this.domains.push(domain)
       this.new_domain = ''
+    },
+    async setupAndroidOrganisation() {
+      const signupURL = await this.$store.dispatch('android/newSignupURL')
+      window.open(signupURL.url, '_blank')
     },
   },
 })

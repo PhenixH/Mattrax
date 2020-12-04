@@ -44,6 +44,8 @@ type Arguments struct {
 	TLSKey  string `default:"./certs/tls.key" placeholder:"\"./certs/tls.key\"" arg:"env:TLS_KEY" help:"The path for the tls certificates key"`
 	Zipkin  string `default:"" placeholder:"\"http://localhost:9411/api/v2/spans\"" arg:"env:ZIPKIN" help:"The url of the Zipkin server. This feature is optional"`
 
+	GoogleServiceAccountPath string `default:"" placeholder:"\"./certs/serviceaccount.json\"" arg:"env:GOOGLE_APPLICATION_CREDENTIALS" help:"The path of the service account. required for the Android management"`
+
 	MattraxCloud       bool   `default:"false" arg:"env:MATTRAX_CLOUD" help:"Enable extra Saas Mattrax API endpoints. DO NOT use unless you know what you are doing!"`
 	MattraxCloudAuth   string `default:"" arg:"env:MATTRAX_CLOUD_AUTH" help:"Authentication key for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
 	MattraxCloudAuthIP string `default:"127.0.0.1" arg:"env:MATTRAX_CLOUD_AUTH_IP" help:"Allowed IP for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`

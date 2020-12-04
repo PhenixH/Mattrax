@@ -3,11 +3,11 @@
     "restrictions": {
       "display_name": "Basic Restrictions",
       "fields": {
-        "block-camera": {
+        "disable_camera": {
           "display_name": "Disable Camera",
           "type": "checkbox"
         },
-        "block-bluetooth": {
+        "disable_bluetooth": {
           "display_name": "Disable Bluetooth",
           "type": "checkbox"
         }

@@ -6,7 +6,10 @@
         <li><NuxtLink to="/">Dashboard</NuxtLink></li>
         <li><NuxtLink to="/devices">Devices</NuxtLink></li>
       </ul>
-      <h1>{{ device.name }}</h1>
+      <h1>
+        <span><DeviceIcon :protocol="device.protocol" width="30" /></span
+        >{{ device.name }}
+      </h1>
     </PageHead>
     <PageNav>
       <button

@@ -12,6 +12,7 @@ import (
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
 	"github.com/openzipkin/zipkin-go"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
@@ -160,8 +161,19 @@ func SettingsMe(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			query := `UPDATE users SET fullname=COALESCE(NULLIF($2, ''), fullname) WHERE upn = $1;`
-			if _, err := tx.Exec(query, claims.Subject, cmd.Fullname); err == sql.ErrNoRows {
+			if cmd.Password.Valid {
+				passwordHash, err := bcrypt.GenerateFromPassword([]byte(cmd.Password.String), 15)
+				if err != nil {
+					log.Printf("[bcrypt.GenerateFromPassword Error]: %s\n", err)
+					span.Tag("warn", fmt.Sprintf("Error hashing user password: %s", err))
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				cmd.Password.String = string(passwordHash)
+			}
+
+			query := `UPDATE users SET fullname=COALESCE(NULLIF($2, ''), fullname), password=COALESCE($3, password) WHERE upn = $1;`
+			if _, err := tx.Exec(query, claims.Subject, cmd.Fullname, cmd.Password); err == sql.ErrNoRows {
 				span.Tag("warn", "user not found")
 				w.WriteHeader(http.StatusNotFound)
 				return

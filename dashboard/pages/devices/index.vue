@@ -11,8 +11,11 @@
       <button @click="$router.push('/enroll')">Enroll Device</button>
       <input type="text" placeholder="Search..." disabled />
     </PageNav>
-    <TableView :headings="['Name', 'Owner', 'Model', 'Groups']">
+    <TableView :headings="['', 'Name', 'Owner', 'Model', 'Groups']">
       <tr v-for="device in devices" :key="device.id">
+        <td>
+          <span><DeviceIcon :protocol="device.protocol" width="30" /></span>
+        </td>
         <td>
           <NuxtLink :to="'/devices/' + device.id" exact>{{
             device.name

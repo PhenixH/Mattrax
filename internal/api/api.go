@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/middleware"
+	"github.com/mattrax/Mattrax/mdm"
 )
 
 var validate = validator.New()
@@ -51,4 +52,11 @@ func Mount(srv *mattrax.Server) {
 	rAuthed.HandleFunc("/{tenant}/domain/{domain}", TenantDomain(srv)).Methods(http.MethodPost, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/:tenant/domain/:domain")
 	rAuthed.HandleFunc("/{tenant}/settings", SettingsTenant(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/:tenant/settings")
 	rAuthed.HandleFunc("/settings", SettingsOverview(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/settings")
+
+	for _, p := range mdm.Protocols {
+		// TODO: rProtocol := rAuthed.PathPrefix("/" + p.ID()).Subrouter()
+		if err := p.MountAPI(rAuthed, r); err != nil {
+			panic(err)
+		}
+	}
 }

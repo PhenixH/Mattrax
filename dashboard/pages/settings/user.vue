@@ -9,6 +9,26 @@
       :disabled="!$store.state.dashboard.editting"
     />
 
+    <p class="field-title">Email:</p>
+    <input name="upn" :value="user_settings.upn" type="email" disabled />
+
+    <p class="field-title">Password:</p>
+    <input
+      v-model="user_settings.password"
+      name="password"
+      placeholder="password"
+      type="password"
+      autocomplete="new-password"
+      :disabled="!$store.state.dashboard.editting"
+    />
+    <!-- <input
+      v-if="!(user_settings.password === undefined || user_settings.password === '')"
+      type="password"
+      placeholder="password"
+      autocomplete="new-password"
+      :disabled="!$store.state.dashboard.editting"
+    /> -->
+
     <p class="field-title">Azure AD OID:</p>
     <input :value="user_settings.azuread_oid" type="azuread_oid" disabled />
   </div>
@@ -44,6 +64,7 @@ export default Vue.extend({
       Object.keys(patch).forEach(
         (key) => (this.user_settings[key] = patch[key])
       )
+      this.user_settings.password = undefined
 
       // TODO: Update auth token
     },

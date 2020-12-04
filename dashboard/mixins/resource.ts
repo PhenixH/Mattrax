@@ -1,3 +1,33 @@
+// function JSONPath(obj: any, path: string): any {
+//   let node = obj
+//   for (const n of path.split('.')) {
+//     if (node[n] === undefined) {
+//       node = undefined
+//       break
+//     }
+
+//     node = node[n]
+//   }
+//   return node
+// }
+
+function SetJSONPath(obj: any, path: string, newValue: any) {
+  let node = obj
+  const pathSegments = path.split('.')
+  for (const [i, n] of pathSegments.entries()) {
+    if (i === pathSegments.length - 1) {
+      node[n] = newValue
+      break
+    }
+
+    if (node[n] === undefined) {
+      node[n] = {}
+    }
+
+    node = node[n]
+  }
+}
+
 function generateFormPatch(el: any) {
   let patch: any = null
   el.querySelectorAll('input, select, checkbox, textarea').forEach(
@@ -7,13 +37,11 @@ function generateFormPatch(el: any) {
         node.checked !== node.defaultChecked
       ) {
         if (patch === null) patch = {}
-        let patchLoc = patch
-        if (node.getAttribute('data-subtype') !== null) {
-          patch[node.getAttribute('data-subtype')] = {}
-          patchLoc = patch[node.getAttribute('data-subtype')]
-        }
-        patchLoc[node.name] =
+        SetJSONPath(
+          patch,
+          node.name,
           node.type === 'checkbox' ? node.checked : node.value
+        )
       }
     }
   )

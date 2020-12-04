@@ -11,6 +11,58 @@ import (
 	"github.com/mattrax/Mattrax/pkg/null"
 )
 
+const aFWCreateState = `-- name: AFWCreateState :one
+INSERT INTO android_for_work_enrollment_state(name) VALUES (NULL) RETURNING id
+`
+
+func (q *Queries) AFWCreateState(ctx context.Context) (string, error) {
+	row := q.queryRow(ctx, q.aFWCreateStateStmt, aFWCreateState)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+const aFWGetAndRemoveState = `-- name: AFWGetAndRemoveState :one
+
+DELETE FROM android_for_work_enrollment_state WHERE id=$1 RETURNING name
+`
+
+//------ Android For Work Enrollment State
+func (q *Queries) AFWGetAndRemoveState(ctx context.Context, id string) (null.String, error) {
+	row := q.queryRow(ctx, q.aFWGetAndRemoveStateStmt, aFWGetAndRemoveState, id)
+	var name null.String
+	err := row.Scan(&name)
+	return name, err
+}
+
+const aFWUpdateState = `-- name: AFWUpdateState :exec
+UPDATE android_for_work_enrollment_state SET name=$2 WHERE id=$1
+`
+
+type AFWUpdateStateParams struct {
+	ID   string      `json:"id"`
+	Name null.String `json:"name"`
+}
+
+func (q *Queries) AFWUpdateState(ctx context.Context, arg AFWUpdateStateParams) error {
+	_, err := q.exec(ctx, q.aFWUpdateStateStmt, aFWUpdateState, arg.ID, arg.Name)
+	return err
+}
+
+const aFWUpdateTenant = `-- name: AFWUpdateTenant :exec
+UPDATE tenants SET afw_enterprise_id=$2 WHERE id=$1
+`
+
+type AFWUpdateTenantParams struct {
+	ID              string      `json:"id"`
+	AfwEnterpriseID null.String `json:"afw_enterprise_id"`
+}
+
+func (q *Queries) AFWUpdateTenant(ctx context.Context, arg AFWUpdateTenantParams) error {
+	_, err := q.exec(ctx, q.aFWUpdateTenantStmt, aFWUpdateTenant, arg.ID, arg.AfwEnterpriseID)
+	return err
+}
+
 const addDevicesToGroup = `-- name: AddDevicesToGroup :exec
 INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2)
 `
@@ -375,7 +427,7 @@ func (q *Queries) GetDevicePolicies(ctx context.Context, deviceID string) ([]Get
 
 const getDevices = `-- name: GetDevices :many
 
-SELECT id, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3
+SELECT id, protocol, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 `
 
 type GetDevicesParams struct {
@@ -385,9 +437,10 @@ type GetDevicesParams struct {
 }
 
 type GetDevicesRow struct {
-	ID    string      `json:"id"`
-	Name  string      `json:"name"`
-	Model null.String `json:"model"`
+	ID       string             `json:"id"`
+	Protocol ManagementProtocol `json:"protocol"`
+	Name     string             `json:"name"`
+	Model    null.String        `json:"model"`
 }
 
 //------ Device Actions
@@ -400,7 +453,12 @@ func (q *Queries) GetDevices(ctx context.Context, arg GetDevicesParams) ([]GetDe
 	var items []GetDevicesRow
 	for rows.Next() {
 		var i GetDevicesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Model); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Protocol,
+			&i.Name,
+			&i.Model,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -657,14 +715,15 @@ func (q *Queries) GetRawCert(ctx context.Context, id string) (GetRawCertRow, err
 
 const getTenant = `-- name: GetTenant :one
 
-SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1
+SELECT display_name, primary_domain, email, phone, afw_enterprise_id FROM tenants WHERE id = $1 LIMIT 1
 `
 
 type GetTenantRow struct {
-	DisplayName   string      `json:"display_name"`
-	PrimaryDomain string      `json:"primary_domain"`
-	Email         null.String `json:"email"`
-	Phone         null.String `json:"phone"`
+	DisplayName     string      `json:"display_name"`
+	PrimaryDomain   string      `json:"primary_domain"`
+	Email           null.String `json:"email"`
+	Phone           null.String `json:"phone"`
+	AfwEnterpriseID null.String `json:"afw_enterprise_id"`
 }
 
 //------ Tenant
@@ -676,6 +735,7 @@ func (q *Queries) GetTenant(ctx context.Context, id string) (GetTenantRow, error
 		&i.PrimaryDomain,
 		&i.Email,
 		&i.Phone,
+		&i.AfwEnterpriseID,
 	)
 	return i, err
 }

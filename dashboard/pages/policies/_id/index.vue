@@ -9,11 +9,7 @@
     />
 
     <p class="field-title">Type:</p>
-    <select
-      v-model="policy.type"
-      name="type"
-      :disabled="!$store.state.dashboard.editting"
-    >
+    <select v-model="policy.type" name="type" disabled>
       <option v-for="(v, key) in payloads_json" :key="key" :value="key">
         {{ v.display_name }}
       </option>
@@ -39,19 +35,17 @@
         </select>
         <input
           v-else-if="field.type === 'checkbox'"
-          data-subtype="payload"
-          :name="field_id"
+          :name="`payload.${policy.type}.${field_id}`"
           type="checkbox"
-          :checked="policy.payload[field_id]"
+          :checked="policy.payload[policy.type][field_id]"
           value=""
           :disabled="!$store.state.dashboard.editting"
         />
         <input
           v-else
-          data-subtype="payload"
-          :name="field_id"
+          :name="`payload.${policy.type}.${policy.type}.${field_id}`"
           :type="field.type !== null ? field.type : 'text'"
-          :value="policy.payload[field_id]"
+          :value="policy.payload[policy.type][field_id]"
           :placeholder="field.placeholder"
           :disabled="!$store.state.dashboard.editting"
         />
@@ -82,6 +76,10 @@ export default Vue.extend({
     active_payload() {
       return this.payloads_json[this.policy.type]
     },
+  },
+  created() {
+    if (this.policy.payload[this.policy.type] === undefined)
+      this.policy.payload[this.policy.type] = {}
   },
   methods: {
     async save(patch: object) {

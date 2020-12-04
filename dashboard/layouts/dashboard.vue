@@ -132,6 +132,11 @@ main.icons {
   padding-left: 15px;
 }
 
+.page-head span {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
 .page-nav {
   width: 100%;
 

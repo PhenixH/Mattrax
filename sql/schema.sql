@@ -16,7 +16,8 @@ CREATE TABLE tenants (
     primary_domain TEXT UNIQUE NOT NULL, -- TODO: REFERENCES
     email TEXT,
     phone TEXT,
-    description TEXT
+    description TEXT,
+    afw_enterprise_id TEXT
 );
 
 CREATE TABLE tenant_domains (
@@ -88,18 +89,22 @@ LANGUAGE plpgsql;
 -- CREATE TRIGGER tenant_domains_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON tenant_domains FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 -- CREATE TRIGGER users_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON users FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
-CREATE TYPE management_protocol AS ENUM ('windows', 'agent', 'apple');
+CREATE TYPE management_protocol AS ENUM ('windows', 'agent', 'apple', 'android');
 CREATE TYPE device_state AS ENUM ('deploying', 'managed', 'user_unenrolled', 'missing');
 
 CREATE TABLE devices (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),
     tenant_id TEXT REFERENCES tenants(id) NOT NULL,
     protocol management_protocol NOT NULL,
+    state device_state NOT NULL,
+
+
+    
     udid TEXT NOT NULL,
     name TEXT UNIQUE NOT NULL,
     description TEXT,
     model TEXT,
-    state device_state NOT NULL,
+
     owner TEXT REFERENCES users(upn),
     azure_did TEXT UNIQUE,
     enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -184,3 +189,9 @@ CREATE TABLE certificates (
 );
 
 -- CREATE TRIGGER certificates_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON certificates FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+
+CREATE TABLE android_for_work_enrollment_state (
+    id TEXT PRIMARY KEY DEFAULT short_uuid(),
+    name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);

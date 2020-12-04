@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -48,8 +47,6 @@ func main() {
 	var args mattrax.Arguments
 	arg.MustParse(&args)
 	// TODO: Verify arguments (eg. Domain is domain, cert paths exists, valid listen addr)
-
-	fmt.Println(args)
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if args.Debug {
@@ -133,8 +130,8 @@ func main() {
 		srv.GlobalRouter.Use(middleware.ZipkinExtended)
 	}
 	srv.Router = srv.GlobalRouter.Schemes("https").Host(args.Domain).Subrouter()
-	api.Mount(srv)
 	mdm.Mount(srv)
+	api.Mount(srv)
 
 	serve(args.Addr, args.Domain, args.TLSCert, args.TLSKey, nil, srv.GlobalRouter)
 }

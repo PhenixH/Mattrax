@@ -6,7 +6,7 @@ SELECT COUNT(*) FROM users;
 -------- Tenant
 
 -- name: GetTenant :one
-SELECT display_name, primary_domain, email, phone FROM tenants WHERE id = $1 LIMIT 1;
+SELECT display_name, primary_domain, email, phone, afw_enterprise_id FROM tenants WHERE id = $1 LIMIT 1;
 
 -- name: GetTenantDomains :many
 SELECT domain, linking_code, verified FROM tenant_domains WHERE tenant_id = $1;
@@ -142,7 +142,7 @@ DELETE FROM applications WHERE id = $1 AND tenant_id = $2;
 -------- Device Actions
 
 -- name: GetDevices :many
-SELECT id, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+SELECT id, protocol, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetDevice :one
 SELECT id, protocol, name, description, state, owner, azure_did, enrolled_at, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
@@ -160,3 +160,17 @@ SELECT cert, key FROM certificates WHERE id = $1 LIMIT 1;
 
 -- name: CreateRawCert :exec
 INSERT INTO certificates(id, cert, key) VALUES ($1, $2, $3);
+
+-------- Android For Work Enrollment State
+
+-- name: AFWGetAndRemoveState :one
+DELETE FROM android_for_work_enrollment_state WHERE id=$1 RETURNING name;
+
+-- name: AFWCreateState :one
+INSERT INTO android_for_work_enrollment_state(name) VALUES (NULL) RETURNING id;
+
+-- name: AFWUpdateState :exec
+UPDATE android_for_work_enrollment_state SET name=$2 WHERE id=$1;
+
+-- name: AFWUpdateTenant :exec
+UPDATE tenants SET afw_enterprise_id=$2 WHERE id=$1;
