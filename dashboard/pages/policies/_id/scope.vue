@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading" class="loading">Loading Device Scope...</div>
+  <div v-if="loading" class="loading">Loading Policy Scope...</div>
   <div v-else>
     <TableView :headings="['Groups', 'Actions']">
       <tr v-for="group in groups" :key="group.id">
@@ -23,16 +23,6 @@
       </option>
     </select>
     <button @click="addGroup()">Add Group</button>
-
-    <TableView :headings="['Computed Policies']">
-      <tr v-for="policy in policies" :key="policy.name">
-        <td>
-          <NuxtLink :to="'/policies/' + policy.id" exact>{{
-            policy.name
-          }}</NuxtLink>
-        </td>
-      </tr>
-    </TableView>
   </div>
 </template>
 
@@ -44,18 +34,14 @@ export default Vue.extend({
     return {
       loading: true,
       groups: [],
-      policies: [],
       tenantGroups: [],
     }
   },
   async created() {
     await Promise.all([
       this.$store
-        .dispatch('devices/getScopeByID', this.$route.params.id)
-        .then((scope) => {
-          this.groups = scope.groups
-          this.policies = scope.policies
-        }),
+        .dispatch('policies/getScopeByID', this.$route.params.id)
+        .then((groups) => (this.groups = groups)),
       this.$store.dispatch('groups/getAll').then((groups) => {
         this.tenantGroups = groups
       }),
@@ -76,9 +62,9 @@ export default Vue.extend({
     },
     addGroup() {
       this.$store
-        .dispatch('devices/addToGroup', {
+        .dispatch('policies/addToGroup', {
           gid: this.$refs.groupSelector.value,
-          udid: this.$route.params.id,
+          pid: this.$route.params.id,
         })
         .then(() => {
           this.groups.push({
@@ -93,9 +79,9 @@ export default Vue.extend({
     },
     unscopeGroup(policyID: string) {
       this.$store
-        .dispatch('devices/removeFromGroup', {
+        .dispatch('policies/removeFromGroup', {
           gid: policyID,
-          udid: this.$route.params.id,
+          pid: this.$route.params.id,
         })
         .then(() => {
           this.groups = this.groups.filter((group) => group.id !== policyID)

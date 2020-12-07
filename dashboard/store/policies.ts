@@ -107,6 +107,42 @@ export const actions = {
         })
     })
   },
+  getScopeByID(context: any, policyID: string) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/policy/' +
+          encodeURI(policyID) +
+          '/scope',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
+        .then(async (res) => {
+          if (res.status !== 200) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error fetching policy scope from server'
+              )
+            )
+            return
+          }
+
+          resolve(await res.json())
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
   patchPolicy(context: any, params: any) {
     return new Promise((resolve, reject) => {
       fetch(
@@ -129,6 +165,88 @@ export const actions = {
           if (res.status !== 200 && res.status !== 204) {
             reject(
               errorForStatus(context, res, 'Error patching policy on server')
+            )
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  addToGroup(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(params.gid) +
+          '/policies',
+        {
+          method: 'POST',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify({
+            policies: [params.pid],
+          }),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error adding policy to group on server'
+              )
+            )
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  removeFromGroup(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(params.gid) +
+          '/policies',
+        {
+          method: 'DELETE',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify({
+            policies: [params.pid],
+          }),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error removing policy from group on server'
+              )
             )
             return
           }

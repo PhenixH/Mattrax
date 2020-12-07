@@ -22,25 +22,11 @@
           <input
             v-model="user.upn"
             type="email"
-            placeholder="chris@otbeaumont.me"
+            placeholder="chris@mattrax.app"
             required
           />
           <p class="field-title">Password:</p>
-          <div class="password-field">
-            <input
-              v-model="user.password"
-              :type="passwordVisible ? 'text' : 'password'"
-              placeholder="password"
-              minlength="8"
-              maxlength="100"
-            />
-            <span
-              @mousedown="passwordVisible = true"
-              @mouseup="passwordVisible = false"
-            >
-              <EyeIcon view-box="0 0 8 8" height="24" width="24" />
-            </span>
-          </div>
+          <PasswordField :value.sync="user.password" />
 
           <button type="submit" class="submit">Create User</button>
         </form>
@@ -57,7 +43,6 @@ export default Vue.extend({
   data() {
     return {
       loading: false,
-      passwordVisible: false,
       user: {
         fullname: '',
         upn: '',
@@ -88,20 +73,6 @@ export default Vue.extend({
   padding: 5px;
   width: 100%;
   max-width: 300px;
-}
-
-.password-field {
-  width: 300px;
-  position: relative;
-}
-
-.password-field span {
-  position: absolute;
-  top: 0;
-  right: 0px;
-  z-index: 2;
-  top: 2.5px;
-  cursor: pointer;
 }
 
 .submit {

@@ -111,7 +111,7 @@ func main() {
 		}
 
 		if err := srv.DB.NewGlobalUser(context.Background(), db.NewGlobalUserParams{
-			UPN:      "mattrax@otbeaumont.me",
+			UPN:      "admin@mattrax.app",
 			Fullname: "Mattrax Admin",
 			Password: null.String{
 				String: string(passwordHash),
@@ -120,7 +120,7 @@ func main() {
 		}); err != nil {
 			log.Fatal().Err(err).Msg("Error creating default user")
 		}
-		log.Info().Str("upn", "mattrax@otbeaumont.me").Str("password", password).Msg("Created default administrator account")
+		log.Info().Str("upn", "admin@mattrax.app").Str("password", password).Msg("Created default administrator account")
 	}
 
 	srv.GlobalRouter.Use(middleware.Logging())

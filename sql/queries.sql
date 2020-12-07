@@ -96,14 +96,20 @@ DELETE FROM groups WHERE id = $1 AND tenant_id = $2;
 -- name: GetDevicesInGroup :many
 SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3;
 
--- name: AddDevicesToGroup :exec
+-- name: AddDeviceToGroup :exec
 INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2);
+
+-- name: RemoveDeviceFromGroup :exec
+DELETE FROM group_devices WHERE group_id = $1 AND device_id = $2;
 
 -- name: GetPoliciesInGroup :many
 SELECT policy_id FROM group_policies WHERE group_id = $1 LIMIT $2 OFFSET $3;
 
--- name: AddPoliciesToGroup :exec
+-- name: AddPolicyToGroup :exec
 INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2);
+
+-- name: RemovePolicyFromGroup :exec
+DELETE FROM group_policies WHERE group_id = $1 AND policy_id = $2;
 
 -------- Policy Actions
 
@@ -115,6 +121,12 @@ SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 O
 
 -- name: GetPolicy :one
 SELECT name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: GetPolicyGroups :many
+SELECT groups.id, groups.name FROM groups INNER JOIN group_policies ON group_policies.group_id=groups.id WHERE group_policies.policy_id = $1;
+
+-- name: GetDevicesWithPolicy :many
+SELECT DISTINCT device_id FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id WHERE group_policies.policy_id = $1;
 
 -- name: DeletePolicy :exec
 DELETE FROM policies WHERE id = $1 AND tenant_id = $2;
@@ -141,17 +153,23 @@ DELETE FROM applications WHERE id = $1 AND tenant_id = $2;
 
 -------- Device Actions
 
+-- name: CreateDevice :one
+INSERT INTO devices(tenant_id, protocol, scope, state, udid, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id;
+
+-- name: GetDeviceForManagement :one
+SELECT id, tenant_id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did FROM devices WHERE udid = $1 LIMIT 1;
+
 -- name: GetDevices :many
 SELECT id, protocol, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetDevice :one
-SELECT id, protocol, name, description, state, owner, azure_did, enrolled_at, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+SELECT id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did, enrolled_at, lastseen FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
 -- name: GetDeviceGroups :many
 SELECT groups.id, groups.name FROM groups INNER JOIN group_devices ON group_devices.group_id=groups.id WHERE group_devices.device_id = $1;
 
 -- name: GetDevicePolicies :many
-SELECT id, name, description, policy_id, group_devices.group_id FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1;
+SELECT DISTINCT ON (id) id, name, description, policy_id, group_devices.group_id FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1;
 
 -------- Certificates
 

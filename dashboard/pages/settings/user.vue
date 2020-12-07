@@ -13,21 +13,13 @@
     <input name="upn" :value="user_settings.upn" type="email" disabled />
 
     <p class="field-title">Password:</p>
-    <input
-      v-model="user_settings.password"
-      name="password"
-      placeholder="password"
-      type="password"
-      autocomplete="new-password"
+    <PasswordField
+      :value.sync="user_settings.password"
       :disabled="!$store.state.dashboard.editting"
     />
-    <!-- <input
-      v-if="!(user_settings.password === undefined || user_settings.password === '')"
-      type="password"
-      placeholder="password"
-      autocomplete="new-password"
-      :disabled="!$store.state.dashboard.editting"
-    /> -->
+
+    <!-- -->
+    <!-- autocomplete="new-password" -->
 
     <p class="field-title">Azure AD OID:</p>
     <input :value="user_settings.azuread_oid" type="azuread_oid" disabled />

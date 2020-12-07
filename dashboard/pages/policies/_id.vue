@@ -21,6 +21,18 @@
       >
         Overview
       </button>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace(
+              '/policies/' + this.$route.params.id,
+              ''
+            ) == '/scope',
+        }"
+        @click="navigate('/scope')"
+      >
+        Scope
+      </button>
     </PageNav>
     <NuxtChild ref="body" :policy="policy" />
   </div>

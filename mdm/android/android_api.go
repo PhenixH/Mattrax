@@ -14,14 +14,15 @@ import (
 	"github.com/mattrax/Mattrax/internal/middleware"
 	"github.com/mattrax/Mattrax/pkg/null"
 	"github.com/openzipkin/zipkin-go"
+	"github.com/pkg/errors"
 	"github.com/skip2/go-qrcode"
 	"google.golang.org/api/androidmanagement/v1"
 )
 
 func (p *Protocol) MountAPI(r *mux.Router, rUnauthenticated *mux.Router) error {
 	r.HandleFunc("/{tenant}/devices/android/qr", AndroidEnrollmentQR(p.srv, p)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/android/qr")
+	rUnauthenticated.HandleFunc("/{tenant}/android/organisation/signup/callback", AndroidOrganisationCallback(p.srv, p)).Methods(http.MethodGet, http.MethodOptions).Name("/android/organisation/signup/callback")
 	r.HandleFunc("/{tenant}/android/organisation/signup", AndroidOrganisation(p.srv, p)).Methods(http.MethodGet, http.MethodOptions).Name("/android/organisation/signup")
-	rUnauthenticated.HandleFunc("/{tenant}/android/organisation/signup/callback", AndroidOrganisationCallback(p.srv, p)).Methods(http.MethodGet, http.MethodOptions).Name("/android/organisation/signup")
 	return nil
 }
 
@@ -48,9 +49,7 @@ func AndroidEnrollmentQR(srv *mattrax.Server, p *Protocol) http.HandlerFunc {
 			return
 		}
 
-		token, err := p.ams.Enterprises.EnrollmentTokens.Create(fmt.Sprintf("enterprises/%s", tenant.AfwEnterpriseID.String), &androidmanagement.EnrollmentToken{
-			PolicyName: fmt.Sprintf("enterprises/%s/policies/%s", tenant.AfwEnterpriseID.String, "tiPCz1U7" /* TEMP */), // TODO: Remove this??
-		}).Do()
+		token, err := p.ams.Enterprises.EnrollmentTokens.Create(fmt.Sprintf("enterprises/%s", tenant.AfwEnterpriseID.String), &androidmanagement.EnrollmentToken{}).Do()
 		if err != nil {
 			panic(err) // TODO
 		}
@@ -69,6 +68,13 @@ func AndroidOrganisation(srv *mattrax.Server, p *Protocol) http.HandlerFunc {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	}
+
+	route := srv.GlobalRouter.GetRoute("/android/organisation/signup/callback")
+	if route == nil {
+		panic("Error acquiring named route") // TODO
+
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		// tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
@@ -79,8 +85,13 @@ func AndroidOrganisation(srv *mattrax.Server, p *Protocol) http.HandlerFunc {
 			panic(err) // TODO
 		}
 
-		// TODO: Get URL from router
-		signupURL, err := p.ams.SignupUrls.Create().ProjectId( /* TODO: json.project_id */ "android-management-playground").CallbackUrl("https://mdm.otbeaumont.me/api/" + vars["tenant"] + "/android/organisation/signup/callback?state=" + stateID).Do()
+		url, err := route.URL("tenant", vars["tenant"])
+		if err != nil {
+			panic(errors.Wrap(err, "Error acquiring url of named route")) // TODO
+		}
+		url.RawQuery = "state=" + stateID
+
+		signupURL, err := p.ams.SignupUrls.Create().ProjectId(p.amsProjectID).CallbackUrl(url.String()).Do()
 		if err != nil {
 			panic(err) // TODO
 		}
@@ -143,14 +154,17 @@ func AndroidOrganisationCallback(srv *mattrax.Server, p *Protocol) http.HandlerF
 			// 	Url: "",
 			// 	Sha256Hash: "",
 			// },
-			PrimaryColor: (0 << 16) | (130 << 8) | 200,
+			EnabledNotificationTypes: []string{"ENROLLMENT", "STATUS_REPORT", "COMMAND"},
+			PubsubTopic:              p.pubsubTopic,
+			PrimaryColor:             (0 << 16) | (130 << 8) | 200,
 			SigninDetails: []*androidmanagement.SigninDetail{
 				{
-					SigninUrl: "https://mdm.otbeaumont.me/TODO",
+					SigninUrl: "https://mdm.otbeaumont.me/TODO", // TODO
 				},
 			},
 			TermsAndConditions: []*androidmanagement.TermsAndConditions{
 				{
+					// TODO
 					Header: &androidmanagement.UserFacingMessage{
 						DefaultMessage: "Testing",
 					},
@@ -159,7 +173,7 @@ func AndroidOrganisationCallback(srv *mattrax.Server, p *Protocol) http.HandlerF
 					},
 				},
 			},
-		}).ProjectId( /* TODO: json.project_id */ "android-management-playground").SignupUrlName(signupName.String).EnterpriseToken(r.URL.Query().Get("enterpriseToken")).Do()
+		}).ProjectId(p.amsProjectID).SignupUrlName(signupName.String).EnterpriseToken(r.URL.Query().Get("enterpriseToken")).Do()
 		if err != nil {
 			panic(err) // TODO
 		}

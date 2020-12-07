@@ -7,7 +7,7 @@
         v-model="user.upn"
         required
         type="email"
-        placeholder="chris@otbeaumont.me"
+        placeholder="chris@mattrax.app"
         maxlength="100"
         autocomplete="username"
         @input="errorTxt = null"

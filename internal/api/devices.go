@@ -171,6 +171,10 @@ func DeviceScope(srv *mattrax.Server) http.HandlerFunc {
 			return
 		}
 
+		if groups == nil {
+			groups = make([]db.GetDeviceGroupsRow, 0)
+		}
+
 		policies, err := srv.DB.WithTx(tx).GetDevicePolicies(r.Context(), vars["udid"])
 		if err == sql.ErrNoRows {
 			span.Tag("warn", "device policies not found")
@@ -181,6 +185,10 @@ func DeviceScope(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("err", fmt.Sprintf("error retrieving device policies: %s", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+
+		if policies == nil {
+			policies = make([]db.GetDevicePoliciesRow, 0)
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")

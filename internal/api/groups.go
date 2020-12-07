@@ -180,36 +180,184 @@ func Group(srv *mattrax.Server) http.HandlerFunc {
 }
 
 func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
+	type Request struct {
+		Policies []string `json:"policies"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
-		groupDevices, err := srv.DB.WithTx(tx).GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
-			GroupID: vars["gid"],
-			// TODO: Pagination
-			Limit:  100,
-			Offset: 0,
-		})
-		if err == sql.ErrNoRows {
-			span.Tag("warn", "group not found")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		} else if err != nil {
-			log.Printf("[GetDevicesInGroup Error]: %s\n", err)
-			span.Tag("warn", fmt.Sprintf("error retrieving devices in groups: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		if r.Method == http.MethodGet {
+			devices, err := srv.DB.WithTx(tx).GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
+				GroupID: vars["gid"],
+				// TODO: Pagination
+				Limit:  100,
+				Offset: 0,
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "group not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[GetPoliciesInGroup Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error retrieving policies in groups: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		if groupDevices == nil {
-			groupDevices = make([]string, 0)
-		}
+			if devices == nil {
+				devices = make([]string, 0)
+			}
 
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		if err := json.NewEncoder(w).Encode(groupDevices); err != nil {
-			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(devices); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPost {
+			var cmd Request
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			fmt.Println(cmd.Policies)
+
+			for _, policyID := range cmd.Policies {
+				fmt.Println(vars["gid"], policyID)
+				if err := srv.DB.WithTx(tx).AddPolicyToGroup(r.Context(), db.AddPolicyToGroupParams{
+					GroupID:  vars["gid"],
+					PolicyID: policyID,
+				}); err != nil {
+					log.Printf("[AddPolicyToGroup Error]: %s\n", err)
+					span.Tag("warn", fmt.Sprintf("error adding policy to group: %s", err))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		} else if r.Method == http.MethodDelete {
+			var cmd Request
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			for _, policyID := range cmd.Policies {
+				if err := srv.DB.WithTx(tx).RemovePolicyFromGroup(r.Context(), db.RemovePolicyFromGroupParams{
+					GroupID:  vars["gid"],
+					PolicyID: policyID,
+				}); err == sql.ErrNoRows {
+					// TODO: Does this need to be handled
+					span.Tag("warn", "policy group not found")
+					w.WriteHeader(http.StatusNotFound)
+					return
+				} else if err != nil {
+					log.Printf("[RemoveDeviceFromGroup Error]: %s\n", err)
+					span.Tag("warn", fmt.Sprintf("error removing policy from group: %s", err))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}
+}
+
+func GroupDevices(srv *mattrax.Server) http.HandlerFunc {
+	type Request struct {
+		Devices []string `json:"devices"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
+		span := zipkin.SpanOrNoopFromContext(r.Context())
+		vars := mux.Vars(r)
+		if r.Method == http.MethodGet {
+			devices, err := srv.DB.WithTx(tx).GetDevicesInGroup(r.Context(), db.GetDevicesInGroupParams{
+				GroupID: vars["gid"],
+				// TODO: Pagination
+				Limit:  100,
+				Offset: 0,
+			})
+			if err == sql.ErrNoRows {
+				span.Tag("warn", "group not found")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else if err != nil {
+				log.Printf("[GetDevicesInGroup Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error retrieving devices in groups: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if devices == nil {
+				devices = make([]string, 0)
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			if err := json.NewEncoder(w).Encode(devices); err != nil {
+				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if r.Method == http.MethodPost {
+			var cmd Request
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			for _, deviceID := range cmd.Devices {
+				if err := srv.DB.WithTx(tx).AddDeviceToGroup(r.Context(), db.AddDeviceToGroupParams{
+					GroupID:  vars["gid"],
+					DeviceID: deviceID,
+				}); err != nil {
+					log.Printf("[AddDevicesToGroup Error]: %s\n", err)
+					span.Tag("warn", fmt.Sprintf("error adding device to group: %s", err))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		} else if r.Method == http.MethodDelete {
+			var cmd Request
+			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
+				log.Printf("[JsonDecode Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			for _, deviceID := range cmd.Devices {
+				if err := srv.DB.WithTx(tx).RemoveDeviceFromGroup(r.Context(), db.RemoveDeviceFromGroupParams{
+					GroupID:  vars["gid"],
+					DeviceID: deviceID,
+				}); err == sql.ErrNoRows {
+					// TODO: Does this need to be handled
+					span.Tag("warn", "device group not found")
+					w.WriteHeader(http.StatusNotFound)
+					return
+				} else if err != nil {
+					log.Printf("[RemoveDeviceFromGroup Error]: %s\n", err)
+					span.Tag("warn", fmt.Sprintf("error removing device from group: %s", err))
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		}
 	}
 }

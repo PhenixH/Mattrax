@@ -3,6 +3,7 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -10,12 +11,32 @@ import (
 	"github.com/mattrax/Mattrax/pkg/null"
 )
 
+type DeviceOwnership string
+
+const (
+	DeviceOwnershipCorporate DeviceOwnership = "corporate"
+	DeviceOwnershipPersonal  DeviceOwnership = "personal"
+)
+
+func (e *DeviceOwnership) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceOwnership(s)
+	case string:
+		*e = DeviceOwnership(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceOwnership: %T", src)
+	}
+	return nil
+}
+
 type DeviceState string
 
 const (
 	DeviceStateDeploying      DeviceState = "deploying"
 	DeviceStateManaged        DeviceState = "managed"
 	DeviceStateUserUnenrolled DeviceState = "user_unenrolled"
+	DeviceStateDisabled       DeviceState = "disabled"
 	DeviceStateMissing        DeviceState = "missing"
 )
 
@@ -48,6 +69,26 @@ func (e *ManagementProtocol) Scan(src interface{}) error {
 		*e = ManagementProtocol(s)
 	default:
 		return fmt.Errorf("unsupported scan type for ManagementProtocol: %T", src)
+	}
+	return nil
+}
+
+type ManagementScope string
+
+const (
+	ManagementScopeDevice     ManagementScope = "device"
+	ManagementScopeAfwProfile ManagementScope = "afw_profile"
+	ManagementScopeUser       ManagementScope = "user"
+)
+
+func (e *ManagementScope) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ManagementScope(s)
+	case string:
+		*e = ManagementScope(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ManagementScope: %T", src)
 	}
 	return nil
 }
@@ -119,17 +160,24 @@ type Certificate struct {
 }
 
 type Device struct {
-	ID          string             `json:"id"`
-	TenantID    string             `json:"tenant_id"`
-	Protocol    ManagementProtocol `json:"protocol"`
-	State       DeviceState        `json:"state"`
-	Udid        string             `json:"udid"`
-	Name        string             `json:"name"`
-	Description null.String        `json:"description"`
-	Model       null.String        `json:"model"`
-	Owner       null.String        `json:"owner"`
-	AzureDid    null.String        `json:"azure_did"`
-	EnrolledAt  time.Time          `json:"enrolled_at"`
+	ID                string             `json:"id"`
+	TenantID          string             `json:"tenant_id"`
+	Protocol          ManagementProtocol `json:"protocol"`
+	Scope             ManagementScope    `json:"scope"`
+	State             DeviceState        `json:"state"`
+	Udid              string             `json:"udid"`
+	Name              string             `json:"name"`
+	Description       null.String        `json:"description"`
+	SerialNumber      null.String        `json:"serial_number"`
+	ModelManufacturer null.String        `json:"model_manufacturer"`
+	Model             null.String        `json:"model"`
+	OsMajor           null.String        `json:"os_major"`
+	OsMinor           null.String        `json:"os_minor"`
+	Owner             null.String        `json:"owner"`
+	Ownership         DeviceOwnership    `json:"ownership"`
+	AzureDid          null.String        `json:"azure_did"`
+	Lastseen          sql.NullTime       `json:"lastseen"`
+	EnrolledAt        time.Time          `json:"enrolled_at"`
 }
 
 type EventLog struct {

@@ -217,3 +217,34 @@ func Policy(srv *mattrax.Server) http.HandlerFunc {
 		}
 	}
 }
+
+func PolicyScope(srv *mattrax.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
+		span := zipkin.SpanOrNoopFromContext(r.Context())
+		vars := mux.Vars(r)
+
+		groups, err := srv.DB.WithTx(tx).GetPolicyGroups(r.Context(), vars["pid"])
+		if err == sql.ErrNoRows {
+			span.Tag("warn", "policy groups not found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
+			log.Printf("[GetPolicyGroups Error]: %s\n", err)
+			span.Tag("err", fmt.Sprintf("error retrieving policy groups: %s", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if groups == nil {
+			groups = make([]db.GetPolicyGroupsRow, 0)
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		if err := json.NewEncoder(w).Encode(groups); err != nil {
+			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}

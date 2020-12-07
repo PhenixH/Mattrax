@@ -30,20 +30,20 @@ export default Vue.extend({
     return {
       // TODO: Get from API
       groups: [
-        {
-          id: '9xBb3sxf',
-          name: 'Student Restrictions',
-          policies: [
-            {
-              id: 'LxsK17QR',
-              name: 'Block Camera Restriction',
-            },
-            {
-              id: 'LxsK17QB',
-              name: 'Block Camera Restriction2',
-            },
-          ],
-        },
+        // {
+        //   id: '9xBb3sxf',
+        //   name: 'Student Restrictions',
+        //   policies: [
+        //     {
+        //       id: 'LxsK17QR',
+        //       name: 'Block Camera Restriction',
+        //     },
+        //     {
+        //       id: 'LxsK17QB',
+        //       name: 'Block Camera Restriction2',
+        //     },
+        //   ],
+        // },
       ],
     }
   },

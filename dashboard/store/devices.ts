@@ -130,8 +130,7 @@ export const actions = {
             return
           }
 
-          const deviceScope = await res.json()
-          resolve(deviceScope)
+          resolve(await res.json())
         })
         .catch((err) => {
           console.error(err)
@@ -161,6 +160,88 @@ export const actions = {
           if (res.status !== 200 && res.status !== 204) {
             reject(
               errorForStatus(context, res, 'Error patching device on server')
+            )
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  addToGroup(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(params.gid) +
+          '/devices',
+        {
+          method: 'POST',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify({
+            devices: [params.udid],
+          }),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error adding device to group on server'
+              )
+            )
+            return
+          }
+
+          resolve()
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  removeFromGroup(context: any, params: any) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(params.gid) +
+          '/devices',
+        {
+          method: 'DELETE',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+          body: JSON.stringify({
+            devices: [params.udid],
+          }),
+        }
+      )
+        .then((res) => {
+          if (res.status !== 200 && res.status !== 204) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error removing device from group on server'
+              )
             )
             return
           }

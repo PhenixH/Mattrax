@@ -65,43 +65,6 @@ export const actions = {
         })
     })
   },
-  getScopedPolicy(context: any, groupID: string) {
-    return new Promise((resolve, reject) => {
-      fetch(
-        process.env.baseUrl +
-          '/' +
-          context.rootState.tenants.tenant.id +
-          '/group/' +
-          encodeURI(groupID) +
-          '/policies',
-        {
-          headers: new Headers({
-            Authorization:
-              'Bearer ' + context.rootState.authentication.authToken,
-          }),
-        }
-      )
-        .then(async (res) => {
-          if (res.status !== 200) {
-            reject(
-              errorForStatus(
-                context,
-                res,
-                'Error fetching devices policies from server'
-              )
-            )
-            return
-          }
-
-          const scopedPolicies = await res.json()
-          resolve(scopedPolicies)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject(new Error('An error occurred communicating with the server'))
-        })
-    })
-  },
   createGroup(context: any, createGroupRequest: any) {
     return new Promise((resolve, reject) => {
       fetch(

@@ -24,6 +24,14 @@
     <p v-if="info.zipkin_status" class="field-title">
       Zipkin Tracing: <span class="info">Enabled</span>
     </p>
+    <p
+      v-if="
+        info.protocols !== undefined && info.protocols.android === undefined
+      "
+      class="field-title"
+    >
+      Android Management: <span class="danger">Disabled</span>
+    </p>
     <br />
 
     <h1>Server Version</h1>

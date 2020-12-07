@@ -11,4 +11,5 @@ type Protocol interface {
 	Mount() error
 	MountAPI(r *mux.Router, rUnauthenticated *mux.Router) error
 	Events() EventHandlers
+	Status() (interface{}, error)
 }

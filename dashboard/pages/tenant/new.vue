@@ -18,7 +18,7 @@
         required
         type="text"
         pattern="(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
-        placeholder="acme.otbeaumont.me"
+        placeholder="acme.mattrax.app"
         @input="errorTxt = null"
       />
       <button>CREATE TENANT</button>

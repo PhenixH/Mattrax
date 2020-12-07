@@ -30,7 +30,7 @@
       Configure Android for Work Organisation
     </button>
 
-    <!--<h2>Domain Management</h2>
+    <h2>Domain Management</h2>
     <p>
       To link a domain create a TXT DNS record at the domain with the linking
       code, then click verify.
@@ -53,10 +53,12 @@
       placeholder="example.com"
       pattern="^[a-zA-Z][a-zA-Z\d-]{1,22}[a-zA-Z\d]$"
     />
-    <button @click="addDomain()">Add Domain</button> -->
+    <button @click="addDomain()">Add Domain</button>
 
     <!-- <h2>Audit Log</h2>
     <textarea v-model="this.event_log" /> -->
+
+    <h2>Administrators</h2>
 
     <h2>Identifiers</h2>
     <p class="field-title">Android For Work Organisation ID:</p>

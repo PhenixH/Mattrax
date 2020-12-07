@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -63,17 +64,17 @@ func (q *Queries) AFWUpdateTenant(ctx context.Context, arg AFWUpdateTenantParams
 	return err
 }
 
-const addDevicesToGroup = `-- name: AddDevicesToGroup :exec
+const addDeviceToGroup = `-- name: AddDeviceToGroup :exec
 INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2)
 `
 
-type AddDevicesToGroupParams struct {
+type AddDeviceToGroupParams struct {
 	GroupID  string `json:"group_id"`
 	DeviceID string `json:"device_id"`
 }
 
-func (q *Queries) AddDevicesToGroup(ctx context.Context, arg AddDevicesToGroupParams) error {
-	_, err := q.exec(ctx, q.addDevicesToGroupStmt, addDevicesToGroup, arg.GroupID, arg.DeviceID)
+func (q *Queries) AddDeviceToGroup(ctx context.Context, arg AddDeviceToGroupParams) error {
+	_, err := q.exec(ctx, q.addDeviceToGroupStmt, addDeviceToGroup, arg.GroupID, arg.DeviceID)
 	return err
 }
 
@@ -93,18 +94,63 @@ func (q *Queries) AddDomainToTenant(ctx context.Context, arg AddDomainToTenantPa
 	return linking_code, err
 }
 
-const addPoliciesToGroup = `-- name: AddPoliciesToGroup :exec
+const addPolicyToGroup = `-- name: AddPolicyToGroup :exec
 INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2)
 `
 
-type AddPoliciesToGroupParams struct {
+type AddPolicyToGroupParams struct {
 	GroupID  string `json:"group_id"`
 	PolicyID string `json:"policy_id"`
 }
 
-func (q *Queries) AddPoliciesToGroup(ctx context.Context, arg AddPoliciesToGroupParams) error {
-	_, err := q.exec(ctx, q.addPoliciesToGroupStmt, addPoliciesToGroup, arg.GroupID, arg.PolicyID)
+func (q *Queries) AddPolicyToGroup(ctx context.Context, arg AddPolicyToGroupParams) error {
+	_, err := q.exec(ctx, q.addPolicyToGroupStmt, addPolicyToGroup, arg.GroupID, arg.PolicyID)
 	return err
+}
+
+const createDevice = `-- name: CreateDevice :one
+
+INSERT INTO devices(tenant_id, protocol, scope, state, udid, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id
+`
+
+type CreateDeviceParams struct {
+	TenantID          string             `json:"tenant_id"`
+	Protocol          ManagementProtocol `json:"protocol"`
+	Scope             ManagementScope    `json:"scope"`
+	State             DeviceState        `json:"state"`
+	Udid              string             `json:"udid"`
+	Name              string             `json:"name"`
+	SerialNumber      null.String        `json:"serial_number"`
+	ModelManufacturer null.String        `json:"model_manufacturer"`
+	Model             null.String        `json:"model"`
+	OsMajor           null.String        `json:"os_major"`
+	OsMinor           null.String        `json:"os_minor"`
+	Owner             null.String        `json:"owner"`
+	Ownership         DeviceOwnership    `json:"ownership"`
+	AzureDid          null.String        `json:"azure_did"`
+}
+
+//------ Device Actions
+func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (string, error) {
+	row := q.queryRow(ctx, q.createDeviceStmt, createDevice,
+		arg.TenantID,
+		arg.Protocol,
+		arg.Scope,
+		arg.State,
+		arg.Udid,
+		arg.Name,
+		arg.SerialNumber,
+		arg.ModelManufacturer,
+		arg.Model,
+		arg.OsMajor,
+		arg.OsMinor,
+		arg.Owner,
+		arg.Ownership,
+		arg.AzureDid,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createObject = `-- name: CreateObject :exec
@@ -315,7 +361,7 @@ func (q *Queries) GetApplications(ctx context.Context, arg GetApplicationsParams
 }
 
 const getDevice = `-- name: GetDevice :one
-SELECT id, protocol, name, description, state, owner, azure_did, enrolled_at, model FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1
+SELECT id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did, enrolled_at, lastseen FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1
 `
 
 type GetDeviceParams struct {
@@ -324,15 +370,21 @@ type GetDeviceParams struct {
 }
 
 type GetDeviceRow struct {
-	ID          string             `json:"id"`
-	Protocol    ManagementProtocol `json:"protocol"`
-	Name        string             `json:"name"`
-	Description null.String        `json:"description"`
-	State       DeviceState        `json:"state"`
-	Owner       null.String        `json:"owner"`
-	AzureDid    null.String        `json:"azure_did"`
-	EnrolledAt  time.Time          `json:"enrolled_at"`
-	Model       null.String        `json:"model"`
+	ID                string             `json:"id"`
+	Protocol          ManagementProtocol `json:"protocol"`
+	Scope             ManagementScope    `json:"scope"`
+	State             DeviceState        `json:"state"`
+	Name              string             `json:"name"`
+	SerialNumber      null.String        `json:"serial_number"`
+	ModelManufacturer null.String        `json:"model_manufacturer"`
+	Model             null.String        `json:"model"`
+	OsMajor           null.String        `json:"os_major"`
+	OsMinor           null.String        `json:"os_minor"`
+	Owner             null.String        `json:"owner"`
+	Ownership         DeviceOwnership    `json:"ownership"`
+	AzureDid          null.String        `json:"azure_did"`
+	EnrolledAt        time.Time          `json:"enrolled_at"`
+	Lastseen          sql.NullTime       `json:"lastseen"`
 }
 
 func (q *Queries) GetDevice(ctx context.Context, arg GetDeviceParams) (GetDeviceRow, error) {
@@ -341,13 +393,62 @@ func (q *Queries) GetDevice(ctx context.Context, arg GetDeviceParams) (GetDevice
 	err := row.Scan(
 		&i.ID,
 		&i.Protocol,
-		&i.Name,
-		&i.Description,
+		&i.Scope,
 		&i.State,
+		&i.Name,
+		&i.SerialNumber,
+		&i.ModelManufacturer,
+		&i.Model,
+		&i.OsMajor,
+		&i.OsMinor,
 		&i.Owner,
+		&i.Ownership,
 		&i.AzureDid,
 		&i.EnrolledAt,
+		&i.Lastseen,
+	)
+	return i, err
+}
+
+const getDeviceForManagement = `-- name: GetDeviceForManagement :one
+SELECT id, tenant_id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did FROM devices WHERE udid = $1 LIMIT 1
+`
+
+type GetDeviceForManagementRow struct {
+	ID                string             `json:"id"`
+	TenantID          string             `json:"tenant_id"`
+	Protocol          ManagementProtocol `json:"protocol"`
+	Scope             ManagementScope    `json:"scope"`
+	State             DeviceState        `json:"state"`
+	Name              string             `json:"name"`
+	SerialNumber      null.String        `json:"serial_number"`
+	ModelManufacturer null.String        `json:"model_manufacturer"`
+	Model             null.String        `json:"model"`
+	OsMajor           null.String        `json:"os_major"`
+	OsMinor           null.String        `json:"os_minor"`
+	Owner             null.String        `json:"owner"`
+	Ownership         DeviceOwnership    `json:"ownership"`
+	AzureDid          null.String        `json:"azure_did"`
+}
+
+func (q *Queries) GetDeviceForManagement(ctx context.Context, udid string) (GetDeviceForManagementRow, error) {
+	row := q.queryRow(ctx, q.getDeviceForManagementStmt, getDeviceForManagement, udid)
+	var i GetDeviceForManagementRow
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.Protocol,
+		&i.Scope,
+		&i.State,
+		&i.Name,
+		&i.SerialNumber,
+		&i.ModelManufacturer,
 		&i.Model,
+		&i.OsMajor,
+		&i.OsMinor,
+		&i.Owner,
+		&i.Ownership,
+		&i.AzureDid,
 	)
 	return i, err
 }
@@ -385,7 +486,7 @@ func (q *Queries) GetDeviceGroups(ctx context.Context, deviceID string) ([]GetDe
 }
 
 const getDevicePolicies = `-- name: GetDevicePolicies :many
-SELECT id, name, description, policy_id, group_devices.group_id FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1
+SELECT DISTINCT ON (id) id, name, description, policy_id, group_devices.group_id FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1
 `
 
 type GetDevicePoliciesRow struct {
@@ -426,7 +527,6 @@ func (q *Queries) GetDevicePolicies(ctx context.Context, deviceID string) ([]Get
 }
 
 const getDevices = `-- name: GetDevices :many
-
 SELECT id, protocol, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3
 `
 
@@ -443,7 +543,6 @@ type GetDevicesRow struct {
 	Model    null.String        `json:"model"`
 }
 
-//------ Device Actions
 func (q *Queries) GetDevices(ctx context.Context, arg GetDevicesParams) ([]GetDevicesRow, error) {
 	rows, err := q.query(ctx, q.getDevicesStmt, getDevices, arg.TenantID, arg.Limit, arg.Offset)
 	if err != nil {
@@ -484,6 +583,33 @@ type GetDevicesInGroupParams struct {
 
 func (q *Queries) GetDevicesInGroup(ctx context.Context, arg GetDevicesInGroupParams) ([]string, error) {
 	rows, err := q.query(ctx, q.getDevicesInGroupStmt, getDevicesInGroup, arg.GroupID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var device_id string
+		if err := rows.Scan(&device_id); err != nil {
+			return nil, err
+		}
+		items = append(items, device_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDevicesWithPolicy = `-- name: GetDevicesWithPolicy :many
+SELECT DISTINCT device_id FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id WHERE group_policies.policy_id = $1
+`
+
+func (q *Queries) GetDevicesWithPolicy(ctx context.Context, policyID string) ([]string, error) {
+	rows, err := q.query(ctx, q.getDevicesWithPolicyStmt, getDevicesWithPolicy, policyID)
 	if err != nil {
 		return nil, err
 	}
@@ -693,6 +819,38 @@ func (q *Queries) GetPolicy(ctx context.Context, arg GetPolicyParams) (GetPolicy
 		&i.Description,
 	)
 	return i, err
+}
+
+const getPolicyGroups = `-- name: GetPolicyGroups :many
+SELECT groups.id, groups.name FROM groups INNER JOIN group_policies ON group_policies.group_id=groups.id WHERE group_policies.policy_id = $1
+`
+
+type GetPolicyGroupsRow struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) GetPolicyGroups(ctx context.Context, policyID string) ([]GetPolicyGroupsRow, error) {
+	rows, err := q.query(ctx, q.getPolicyGroupsStmt, getPolicyGroups, policyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPolicyGroupsRow
+	for rows.Next() {
+		var i GetPolicyGroupsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRawCert = `-- name: GetRawCert :one
@@ -1115,6 +1273,34 @@ type NewUserFromAzureADParams struct {
 
 func (q *Queries) NewUserFromAzureAD(ctx context.Context, arg NewUserFromAzureADParams) error {
 	_, err := q.exec(ctx, q.newUserFromAzureADStmt, newUserFromAzureAD, arg.UPN, arg.Fullname, arg.AzureadOid)
+	return err
+}
+
+const removeDeviceFromGroup = `-- name: RemoveDeviceFromGroup :exec
+DELETE FROM group_devices WHERE group_id = $1 AND device_id = $2
+`
+
+type RemoveDeviceFromGroupParams struct {
+	GroupID  string `json:"group_id"`
+	DeviceID string `json:"device_id"`
+}
+
+func (q *Queries) RemoveDeviceFromGroup(ctx context.Context, arg RemoveDeviceFromGroupParams) error {
+	_, err := q.exec(ctx, q.removeDeviceFromGroupStmt, removeDeviceFromGroup, arg.GroupID, arg.DeviceID)
+	return err
+}
+
+const removePolicyFromGroup = `-- name: RemovePolicyFromGroup :exec
+DELETE FROM group_policies WHERE group_id = $1 AND policy_id = $2
+`
+
+type RemovePolicyFromGroupParams struct {
+	GroupID  string `json:"group_id"`
+	PolicyID string `json:"policy_id"`
+}
+
+func (q *Queries) RemovePolicyFromGroup(ctx context.Context, arg RemovePolicyFromGroupParams) error {
+	_, err := q.exec(ctx, q.removePolicyFromGroupStmt, removePolicyFromGroup, arg.GroupID, arg.PolicyID)
 	return err
 }
 

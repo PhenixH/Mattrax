@@ -30,7 +30,7 @@ func (as Service) Token(rawToken string) (AuthClaims, error) {
 	// TODO: Remove it when possible!
 	if as.debugMode && rawToken == "VIRTUAL_DEVICE_AUTH_TOKEN" {
 		return AuthClaims{
-			Subject: "virt@mattrax.otbeaumont.me",
+			Subject: "virt@mattrax.app",
 		}, nil
 	}
 

@@ -8,7 +8,7 @@
         v-model="email"
         required
         type="text"
-        placeholder="chris@otbeaumont.me"
+        placeholder="chris@mattrax.app"
         maxlength="100"
         autocomplete="new-password"
         @input="errorTxt = null"

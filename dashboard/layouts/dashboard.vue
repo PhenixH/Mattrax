@@ -85,7 +85,14 @@ body {
   font-weight: 300;
   height: 100vh;
   overflow: hidden;
+  overflow-y: scroll;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   background-color: #f2f2f2;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 h1,
@@ -164,17 +171,7 @@ main.icons {
 
 .page-body {
   padding: 15px;
-  overflow: scroll;
-
-  /* min-height: 100%; */
-  /* height: auto !important; */
-  /* height: calc(100% - 50%); */
-  /* background: orange; */
-  /* height: 100%; */
-  /* top: 0; */
-  /* bottom: 100px;
-  position: relative;
-  overflow: scroll; */
+  padding-bottom: 81px;
 }
 
 .danger {
@@ -213,7 +210,7 @@ main.icons {
   background: #fff;
   border-top: 3px solid #353435;
   padding: 10px;
-  position: absolute;
+  position: fixed;
   bottom: 0;
 }
 

@@ -90,23 +90,29 @@ LANGUAGE plpgsql;
 -- CREATE TRIGGER users_audit_trigger AFTER INSERT OR UPDATE OR DELETE ON users FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 CREATE TYPE management_protocol AS ENUM ('windows', 'agent', 'apple', 'android');
-CREATE TYPE device_state AS ENUM ('deploying', 'managed', 'user_unenrolled', 'missing');
+CREATE TYPE management_scope AS ENUM ('device', 'afw_profile', 'user');
+CREATE TYPE device_state AS ENUM ('deploying', 'managed', 'user_unenrolled', 'disabled', 'missing');
+CREATE TYPE device_ownership AS ENUM ('corporate', 'personal');
+
 
 CREATE TABLE devices (
     id TEXT PRIMARY KEY DEFAULT short_uuid(),
     tenant_id TEXT REFERENCES tenants(id) NOT NULL,
     protocol management_protocol NOT NULL,
+    scope management_scope NOT NULL,
     state device_state NOT NULL,
-
-
-    
     udid TEXT NOT NULL,
     name TEXT UNIQUE NOT NULL,
     description TEXT,
+    serial_number TEXT,
+    model_manufacturer TEXT,
     model TEXT,
-
+    os_major TEXT,
+    os_minor TEXT,
     owner TEXT REFERENCES users(upn),
+    ownership device_ownership NOT NULL,
     azure_did TEXT UNIQUE,
+    lastseen TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- TODO: NOT NULL,
     enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     UNIQUE(protocol, udid)
 );

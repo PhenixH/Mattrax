@@ -3,15 +3,11 @@
     <div>
       <h1 class="title">Mattrax Dashboard</h1>
       <div class="links">
-        <a
-          href="https://mattrax.otbeaumont.me"
-          target="_blank"
-          class="button--grey"
-        >
+        <a href="https://mattrax.app" target="_blank" class="button--grey">
           Website
         </a>
         <a
-          href="https://mattrax.otbeaumont.me?slack"
+          href="https://mattrax.app?slack"
           target="_blank"
           class="button--grey"
         >

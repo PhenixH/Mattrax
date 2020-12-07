@@ -11,20 +11,22 @@ import (
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
+	"github.com/mattrax/Mattrax/mdm"
 	"github.com/openzipkin/zipkin-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
 	type Response struct {
-		DebugMode      bool   `json:"debug_mode"`
-		CloudMode      bool   `json:"cloud_mode"`
-		PrimaryDomain  string `json:"primary_domain"`
-		DatabaseStatus bool   `json:"database_status"`
-		ZipkinStatus   bool   `json:"zipkin_status,omitempty"`
-		Version        string `json:"version"`
-		VersionCommit  string `json:"version_commit"`
-		VersionDate    string `json:"version_date"`
+		DebugMode      bool                   `json:"debug_mode"`
+		CloudMode      bool                   `json:"cloud_mode"`
+		PrimaryDomain  string                 `json:"primary_domain"`
+		DatabaseStatus bool                   `json:"database_status"`
+		ZipkinStatus   bool                   `json:"zipkin_status,omitempty"`
+		Protocols      map[string]interface{} `json:"protocols"`
+		Version        string                 `json:"version"`
+		VersionCommit  string                 `json:"version_commit"`
+		VersionDate    string                 `json:"version_date"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -36,9 +38,19 @@ func SettingsOverview(srv *mattrax.Server) http.HandlerFunc {
 				PrimaryDomain:  srv.Args.Domain,
 				DatabaseStatus: srv.DBConn.PingContext(r.Context()) == nil,
 				ZipkinStatus:   srv.Args.Zipkin != "",
+				Protocols:      map[string]interface{}{},
 				Version:        mattrax.Version,
 				VersionCommit:  mattrax.VersionCommit,
 				VersionDate:    mattrax.VersionDate,
+			}
+
+			for _, p := range mdm.Protocols {
+				status, err := p.Status()
+				if err != nil {
+					panic(err) // TODO
+				}
+
+				cmd.Protocols[p.ID()] = status
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
