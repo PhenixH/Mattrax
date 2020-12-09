@@ -10,30 +10,18 @@
 
     <p class="field-title">Scope:</p>
     <TableView :headings="['Scoped Policies']">
-      <!-- <tr v-for="group in groups" :key="group.id">
+      <tr v-for="policy in scopedPolicies" :key="policy.id">
         <td>
-          <NuxtLink :to="'/groups/' + group.id">{{ group.name }}</NuxtLink>
+          <NuxtLink :to="'/policies/' + policy.id">{{ policy.name }}</NuxtLink>
         </td>
-        <td>
-          <span v-for="policy in group.policies" :key="policy.id">
-            <NuxtLink :to="'/policies/' + policy.id">{{ policy.name }}</NuxtLink
-            >,
-          </span>
-        </td>
-      </tr> -->
+      </tr>
     </TableView>
     <TableView :headings="['Scoped Devices']">
-      <!-- <tr v-for="group in groups" :key="group.id">
+      <tr v-for="device in scopedDevices" :key="device.id">
         <td>
-          <NuxtLink :to="'/groups/' + group.id">{{ group.name }}</NuxtLink>
+          <NuxtLink :to="'/devices/' + device.id">{{ device.name }}</NuxtLink>
         </td>
-        <td>
-          <span v-for="policy in group.policies" :key="policy.id">
-            <NuxtLink :to="'/policies/' + policy.id">{{ policy.name }}</NuxtLink
-            >,
-          </span>
-        </td>
-      </tr> -->
+      </tr>
     </TableView>
   </div>
 </template>
@@ -49,6 +37,23 @@ export default Vue.extend({
       type: Object,
       required: true,
     },
+  },
+  data() {
+    return {
+      scopedPolicies: [],
+      scopedDevices: [],
+    }
+  },
+  created() {
+    this.$store
+      .dispatch('groups/getScopedPolicies', this.$route.params.id)
+      .then((policies) => (this.scopedPolicies = policies))
+      .catch((err) => this.$store.commit('dashboard/setError', err))
+
+    this.$store
+      .dispatch('groups/getScopedDevices', this.$route.params.id)
+      .then((devices) => (this.scopedDevices = devices))
+      .catch((err) => this.$store.commit('dashboard/setError', err))
   },
   methods: {
     async save(patch: object) {

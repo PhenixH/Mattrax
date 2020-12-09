@@ -190,7 +190,8 @@ func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
 			devices, err := srv.DB.WithTx(tx).GetPoliciesInGroup(r.Context(), db.GetPoliciesInGroupParams{
-				GroupID: vars["gid"],
+				TenantID: vars["tenant"],
+				GroupID:  vars["gid"],
 				// TODO: Pagination
 				Limit:  100,
 				Offset: 0,
@@ -207,7 +208,7 @@ func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			if devices == nil {
-				devices = make([]string, 0)
+				devices = make([]db.GetPoliciesInGroupRow, 0)
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -224,8 +225,6 @@ func GroupPolicies(srv *mattrax.Server) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-
-			fmt.Println(cmd.Policies)
 
 			for _, policyID := range cmd.Policies {
 				fmt.Println(vars["gid"], policyID)
@@ -283,7 +282,8 @@ func GroupDevices(srv *mattrax.Server) http.HandlerFunc {
 		vars := mux.Vars(r)
 		if r.Method == http.MethodGet {
 			devices, err := srv.DB.WithTx(tx).GetDevicesInGroup(r.Context(), db.GetDevicesInGroupParams{
-				GroupID: vars["gid"],
+				TenantID: vars["tenant"],
+				GroupID:  vars["gid"],
 				// TODO: Pagination
 				Limit:  100,
 				Offset: 0,
@@ -300,7 +300,7 @@ func GroupDevices(srv *mattrax.Server) http.HandlerFunc {
 			}
 
 			if devices == nil {
-				devices = make([]string, 0)
+				devices = make([]db.GetDevicesInGroupRow, 0)
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")

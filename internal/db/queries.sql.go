@@ -572,28 +572,39 @@ func (q *Queries) GetDevices(ctx context.Context, arg GetDevicesParams) ([]GetDe
 }
 
 const getDevicesInGroup = `-- name: GetDevicesInGroup :many
-SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3
+SELECT devices.id, devices.name FROM group_devices INNER JOIN devices ON devices.id=group_devices.device_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4
 `
 
 type GetDevicesInGroupParams struct {
-	GroupID string `json:"group_id"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
+	GroupID  string `json:"group_id"`
+	TenantID string `json:"tenant_id"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
 }
 
-func (q *Queries) GetDevicesInGroup(ctx context.Context, arg GetDevicesInGroupParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getDevicesInGroupStmt, getDevicesInGroup, arg.GroupID, arg.Limit, arg.Offset)
+type GetDevicesInGroupRow struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) GetDevicesInGroup(ctx context.Context, arg GetDevicesInGroupParams) ([]GetDevicesInGroupRow, error) {
+	rows, err := q.query(ctx, q.getDevicesInGroupStmt, getDevicesInGroup,
+		arg.GroupID,
+		arg.TenantID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []GetDevicesInGroupRow
 	for rows.Next() {
-		var device_id string
-		if err := rows.Scan(&device_id); err != nil {
+		var i GetDevicesInGroupRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
-		items = append(items, device_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -761,28 +772,39 @@ func (q *Queries) GetPolicies(ctx context.Context, arg GetPoliciesParams) ([]Get
 }
 
 const getPoliciesInGroup = `-- name: GetPoliciesInGroup :many
-SELECT policy_id FROM group_policies WHERE group_id = $1 LIMIT $2 OFFSET $3
+SELECT policies.id, policies.name FROM group_policies INNER JOIN policies ON policies.id=group_policies.policy_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4
 `
 
 type GetPoliciesInGroupParams struct {
-	GroupID string `json:"group_id"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
+	GroupID  string `json:"group_id"`
+	TenantID string `json:"tenant_id"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
 }
 
-func (q *Queries) GetPoliciesInGroup(ctx context.Context, arg GetPoliciesInGroupParams) ([]string, error) {
-	rows, err := q.query(ctx, q.getPoliciesInGroupStmt, getPoliciesInGroup, arg.GroupID, arg.Limit, arg.Offset)
+type GetPoliciesInGroupRow struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) GetPoliciesInGroup(ctx context.Context, arg GetPoliciesInGroupParams) ([]GetPoliciesInGroupRow, error) {
+	rows, err := q.query(ctx, q.getPoliciesInGroupStmt, getPoliciesInGroup,
+		arg.GroupID,
+		arg.TenantID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []GetPoliciesInGroupRow
 	for rows.Next() {
-		var policy_id string
-		if err := rows.Scan(&policy_id); err != nil {
+		var i GetPoliciesInGroupRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
-		items = append(items, policy_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

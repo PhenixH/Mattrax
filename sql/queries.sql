@@ -94,7 +94,7 @@ SELECT id, name, description FROM groups WHERE id = $1 AND tenant_id = $2 LIMIT 
 DELETE FROM groups WHERE id = $1 AND tenant_id = $2;
 
 -- name: GetDevicesInGroup :many
-SELECT device_id FROM group_devices WHERE group_id = $1 LIMIT $2 OFFSET $3;
+SELECT devices.id, devices.name FROM group_devices INNER JOIN devices ON devices.id=group_devices.device_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4;
 
 -- name: AddDeviceToGroup :exec
 INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2);
@@ -103,7 +103,7 @@ INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2);
 DELETE FROM group_devices WHERE group_id = $1 AND device_id = $2;
 
 -- name: GetPoliciesInGroup :many
-SELECT policy_id FROM group_policies WHERE group_id = $1 LIMIT $2 OFFSET $3;
+SELECT policies.id, policies.name FROM group_policies INNER JOIN policies ON policies.id=group_policies.policy_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4;
 
 -- name: AddPolicyToGroup :exec
 INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2);

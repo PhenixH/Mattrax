@@ -133,6 +133,78 @@ export const actions = {
         })
     })
   },
+  getScopedPolicies(context: any, groupID: string) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(groupID) +
+          '/policies',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
+        .then(async (res) => {
+          if (res.status !== 200) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error fetching groups policies from server'
+              )
+            )
+            return
+          }
+
+          resolve(await res.json())
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
+  getScopedDevices(context: any, groupID: string) {
+    return new Promise((resolve, reject) => {
+      fetch(
+        process.env.baseUrl +
+          '/' +
+          context.rootState.tenants.tenant.id +
+          '/group/' +
+          encodeURI(groupID) +
+          '/devices',
+        {
+          headers: new Headers({
+            Authorization:
+              'Bearer ' + context.rootState.authentication.authToken,
+          }),
+        }
+      )
+        .then(async (res) => {
+          if (res.status !== 200) {
+            reject(
+              errorForStatus(
+                context,
+                res,
+                'Error fetching groups devices from server'
+              )
+            )
+            return
+          }
+
+          resolve(await res.json())
+        })
+        .catch((err) => {
+          console.error(err)
+          reject(new Error('An error occurred communicating with the server'))
+        })
+    })
+  },
   deleteGroup(context: any, id: string) {
     return new Promise((resolve, reject) => {
       fetch(
