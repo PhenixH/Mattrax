@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
@@ -45,27 +46,32 @@ func (s *Service) IdentitySignCSR(csr *x509.CertificateRequest, subject pkix.Nam
 	var identityCertificateKey = s.identityPrivateKey
 	s.identityLock.RUnlock()
 
+	serialNumberHasher := sha1.New()
+	serialNumberHasher.Write([]byte(subject.String() + time.Now().String()))
+
+	var serialNumber = big.NewInt(0)
+	serialNumber.SetBytes(serialNumberHasher.Sum(nil))
+
 	var notBefore = time.Now().Add(time.Duration(mathrand.Int31n(120)) * -time.Minute)
 	clientCertificate := &x509.Certificate{
-		Version:            csr.Version,
-		Signature:          csr.Signature,
-		SignatureAlgorithm: x509.SHA256WithRSA,
-		PublicKey:          csr.PublicKey,
-		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
-		Subject:            subject,
-		Extensions:         csr.Extensions,
-		ExtraExtensions:    csr.ExtraExtensions,
-		DNSNames:           csr.DNSNames,
-		EmailAddresses:     csr.EmailAddresses,
-		IPAddresses:        csr.IPAddresses,
-		URIs:               csr.URIs,
-
-		SerialNumber:          big.NewInt(2), // TODO: Increasing (Should be unqiue for CA)
+		Version:               csr.Version,
+		Signature:             csr.Signature,
+		SignatureAlgorithm:    x509.SHA256WithRSA,
+		PublicKey:             csr.PublicKey,
+		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
+		Subject:               subject,
+		Extensions:            csr.Extensions,
+		ExtraExtensions:       csr.ExtraExtensions,
+		DNSNames:              csr.DNSNames,
+		EmailAddresses:        csr.EmailAddresses,
+		IPAddresses:           csr.IPAddresses,
+		URIs:                  csr.URIs,
+		SerialNumber:          serialNumber,
 		Issuer:                identityCertificate.Issuer,
 		NotBefore:             notBefore,
 		NotAfter:              notBefore.Add(365 * 24 * time.Hour),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 		IsCA:                  false,
 	}

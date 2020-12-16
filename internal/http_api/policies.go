@@ -1,4 +1,4 @@
-package api
+package http_api
 
 import (
 	"database/sql"
@@ -12,17 +12,18 @@ import (
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/mattrax/Mattrax/internal/middleware"
-	"github.com/mattrax/Mattrax/pkg/null"
+	"github.com/mattrax/Mattrax/mdm"
 	"github.com/openzipkin/zipkin-go"
 )
 
-func Applications(srv *mattrax.Server) http.HandlerFunc {
+func Policies(srv *mattrax.Server) http.HandlerFunc {
 	type CreateRequest struct {
-		Name null.String `json:"name" validate:"required,alphanumspace,min=1,max=100"`
+		Name string `json:"name" validate:"required,alphanumspace,min=1,max=100"`
+		Type string `json:"type"` // TODO: Validate against JSON
 	}
 
 	type CreateResponse struct {
-		ApplicationID string `json:"application_id"`
+		PolicyID string `json:"policy_id"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -39,24 +40,24 @@ func Applications(srv *mattrax.Server) http.HandlerFunc {
 			span.Tag("limit", fmt.Sprintf("%v", limit))
 			span.Tag("offset", fmt.Sprintf("%v", offset))
 
-			applications, err := srv.DB.WithTx(tx).GetApplications(r.Context(), db.GetApplicationsParams{
+			policies, err := srv.DB.WithTx(tx).GetPolicies(r.Context(), db.GetPoliciesParams{
 				TenantID: vars["tenant"],
 				Limit:    limit,
 				Offset:   offset,
 			})
 			if err != nil {
-				log.Printf("[GetApplications Error]: %s\n", err)
-				span.Tag("err", fmt.Sprintf("error retrieving applications: %s", err))
+				log.Printf("[GetPolicies Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving policies: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			if applications == nil {
-				applications = make([]db.GetApplicationsRow, 0)
+			if policies == nil {
+				policies = make([]db.GetPoliciesRow, 0)
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			if err := json.NewEncoder(w).Encode(applications); err != nil {
+			if err := json.NewEncoder(w).Encode(policies); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -80,9 +81,10 @@ func Applications(srv *mattrax.Server) http.HandlerFunc {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			applicationID, err := srv.DB.WithTx(tx).NewApplication(r.Context(), db.NewApplicationParams{
+			policyID, err := srv.DB.WithTx(tx).NewPolicy(r.Context(), db.NewPolicyParams{
 				Name:     cmd.Name,
 				TenantID: vars["tenant"],
+				Type:     cmd.Type,
 			})
 			if err != nil {
 				if pqe, ok := err.(*pq.Error); ok && string(pqe.Code) == "23505" {
@@ -91,15 +93,15 @@ func Applications(srv *mattrax.Server) http.HandlerFunc {
 					return
 				}
 
-				log.Printf("[NewApplication Error]: %s\n", err)
-				span.Tag("err", fmt.Sprintf("error creating new application: %s", err))
+				log.Printf("[NewPolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error creating new policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			if err := json.NewEncoder(w).Encode(CreateResponse{
-				ApplicationID: applicationID,
+				PolicyID: policyID,
 			}); err != nil {
 				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -109,52 +111,36 @@ func Applications(srv *mattrax.Server) http.HandlerFunc {
 	}
 }
 
-func Application(srv *mattrax.Server) http.HandlerFunc {
-	type ApplicationResponse struct {
-		db.GetApplicationRow
-		Targets []db.GetApplicationTargetsRow `json:"targets"`
-	}
-
+func Policy(srv *mattrax.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tx := middleware.DBTxFromContext(r.Context())
 		span := zipkin.SpanOrNoopFromContext(r.Context())
 		vars := mux.Vars(r)
 
 		if r.Method == http.MethodGet {
-			app, err := srv.DB.WithTx(tx).GetApplication(r.Context(), db.GetApplicationParams{
-				ID:       vars["aid"],
+			policy, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
+				ID:       vars["pid"],
 				TenantID: vars["tenant"],
 			})
 			if err == sql.ErrNoRows {
-				span.Tag("warn", "application not found")
+				span.Tag("warn", "policy not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
 			} else if err != nil {
-				log.Printf("[GetApplication Error]: %s\n", err)
-				span.Tag("err", fmt.Sprintf("error retrieving application: %s", err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			appTargets, err := srv.DB.WithTx(tx).GetApplicationTargets(r.Context(), db.GetApplicationTargetsParams{
-				AppID:    vars["aid"],
-				TenantID: vars["tenant"],
-			})
-			if err != nil {
-				log.Printf("[GetApplicationTargets Error]: %s\n", err)
-				span.Tag("err", fmt.Sprintf("error retrieving application targets: %s", err))
+				log.Printf("[GetPolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			if err := json.NewEncoder(w).Encode(ApplicationResponse{app, appTargets}); err != nil {
+			if err := json.NewEncoder(w).Encode(policy); err != nil {
 				span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else if r.Method == http.MethodPatch {
-			var cmd db.Application
+			var cmd db.Policy
 			if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
 				log.Printf("[JsonDecode Error]: %s\n", err)
 				span.Tag("warn", fmt.Sprintf("JSON decode error: %s", err))
@@ -162,42 +148,103 @@ func Application(srv *mattrax.Server) http.HandlerFunc {
 				return
 			}
 
-			err := srv.DB.WithTx(tx).UpdateApplication(r.Context(), db.UpdateApplicationParams{
-				ID:          vars["aid"],
-				TenantID:    vars["tenant"],
-				Name:        cmd.Name,
-				Description: cmd.Description,
-				Publisher:   cmd.Publisher,
-			})
-			if err == sql.ErrNoRows {
-				span.Tag("warn", "application not found")
+			if len(cmd.Payload) == 0 {
+				cmd.Payload = []byte("{}")
+			}
+
+			query := `UPDATE policies SET name=COALESCE(NULLIF($3, ''), name), type=COALESCE(NULLIF($4, ''), type), payload=payload||$5 WHERE id = $1 AND tenant_id=$2;`
+			if _, err := tx.Exec(query, vars["pid"], vars["tenant"], cmd.Name, cmd.Type, string(cmd.Payload)); err == sql.ErrNoRows {
+				span.Tag("warn", "policy not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
 			} else if err != nil {
-				log.Printf("[UpdateApplication Error]: %s\n", err)
-				span.Tag("err", fmt.Sprintf("error updating application: %s", err))
+				log.Printf("[UpdatePolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error updating policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
+			// TEMP
+			policyRow, err := srv.DB.WithTx(tx).GetPolicy(r.Context(), db.GetPolicyParams{
+				ID:       vars["pid"],
+				TenantID: vars["tenant"],
+			})
+			if err != nil {
+				log.Printf("[GetPolicy Error]: %s\n", err)
+				span.Tag("err", fmt.Sprintf("error retrieving policy: %s", err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var policy = db.Policy{
+				ID:          vars["pid"],
+				TenantID:    vars["tenant"],
+				Name:        policyRow.Name,
+				Type:        policyRow.Type,
+				Payload:     policyRow.Payload,
+				Description: policyRow.Description,
+			}
+
+			for _, p := range mdm.Protocols {
+				events := p.Events()
+				if events.UpdatePolicy != nil {
+					err := events.UpdatePolicy(policy)
+					if err != nil {
+						panic(err) // TODO
+					}
+				}
+			}
+			// END TEMP
 
 			w.WriteHeader(http.StatusNoContent)
 		} else if r.Method == http.MethodDelete {
-			err := srv.DB.WithTx(tx).DeleteApplication(r.Context(), db.DeleteApplicationParams{
-				ID:       vars["aid"],
+			err := srv.DB.WithTx(tx).DeletePolicy(r.Context(), db.DeletePolicyParams{
+				ID:       vars["pid"],
 				TenantID: vars["tenant"],
 			})
 			if err == sql.ErrNoRows {
-				span.Tag("warn", "application not found")
+				span.Tag("warn", "policy not found")
 				w.WriteHeader(http.StatusNotFound)
 				return
 			} else if err != nil {
-				log.Printf("[DeleteApplication Error]: %s\n", err)
-				span.Tag("warn", fmt.Sprintf("error deleting application: %s", err))
+				log.Printf("[DeletePolicy Error]: %s\n", err)
+				span.Tag("warn", fmt.Sprintf("error deleting policy: %s", err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
 			w.WriteHeader(http.StatusNoContent)
+		}
+	}
+}
+
+func PolicyScope(srv *mattrax.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tx := middleware.DBTxFromContext(r.Context())
+		span := zipkin.SpanOrNoopFromContext(r.Context())
+		vars := mux.Vars(r)
+
+		groups, err := srv.DB.WithTx(tx).GetPolicyGroups(r.Context(), vars["pid"])
+		if err == sql.ErrNoRows {
+			span.Tag("warn", "policy groups not found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
+			log.Printf("[GetPolicyGroups Error]: %s\n", err)
+			span.Tag("err", fmt.Sprintf("error retrieving policy groups: %s", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if groups == nil {
+			groups = make([]db.GetPolicyGroupsRow, 0)
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		if err := json.NewEncoder(w).Encode(groups); err != nil {
+			span.Tag("warn", fmt.Sprintf("error encoding JSON response: %s", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 }

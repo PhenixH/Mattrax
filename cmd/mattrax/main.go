@@ -15,6 +15,7 @@ import (
 	"github.com/mattrax/Mattrax/internal/authentication"
 	"github.com/mattrax/Mattrax/internal/certificates"
 	"github.com/mattrax/Mattrax/internal/db"
+	"github.com/mattrax/Mattrax/internal/http_api"
 	"github.com/mattrax/Mattrax/internal/middleware"
 	"github.com/mattrax/Mattrax/internal/settings"
 	"github.com/mattrax/Mattrax/mdm"
@@ -99,6 +100,9 @@ func main() {
 	if srv.Auth, err = authentication.New(srv.Cert, srv.Cache, srv.DB, args.Domain, args.Debug); err != nil {
 		log.Fatal().Err(err).Msg("Error starting authentication service")
 	}
+	if srv.API, err = api.New(srv.DB); err != nil {
+		log.Fatal().Err(err).Msg("Error starting API service")
+	}
 
 	if userCount, err := srv.DB.GetUserCount(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("Error getting user count")
@@ -131,7 +135,7 @@ func main() {
 	}
 	srv.Router = srv.GlobalRouter.Schemes("https").Host(args.Domain).Subrouter()
 	mdm.Mount(srv)
-	api.Mount(srv)
+	http_api.Mount(srv)
 
 	serve(args.Addr, args.Domain, args.TLSCert, args.TLSKey, nil, srv.GlobalRouter)
 }

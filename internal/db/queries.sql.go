@@ -1027,11 +1027,12 @@ func (q *Queries) GetUserPermissionLevelForTenant(ctx context.Context, arg GetUs
 }
 
 const getUserSecure = `-- name: GetUserSecure :one
-SELECT fullname, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 1
+SELECT fullname, disabled, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 1
 `
 
 type GetUserSecureRow struct {
 	Fullname string      `json:"fullname"`
+	Disabled bool        `json:"disabled"`
 	Password null.String `json:"password"`
 	MfaToken null.String `json:"mfa_token"`
 	TenantID null.String `json:"tenant_id"`
@@ -1042,6 +1043,7 @@ func (q *Queries) GetUserSecure(ctx context.Context, upn string) (GetUserSecureR
 	var i GetUserSecureRow
 	err := row.Scan(
 		&i.Fullname,
+		&i.Disabled,
 		&i.Password,
 		&i.MfaToken,
 		&i.TenantID,

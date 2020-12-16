@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/gorilla/mux"
+	"github.com/mattrax/Mattrax/internal/api"
 	"github.com/mattrax/Mattrax/internal/authentication"
 	"github.com/mattrax/Mattrax/internal/certificates"
 	"github.com/mattrax/Mattrax/internal/db"
@@ -26,6 +27,7 @@ type Server struct {
 	GlobalRouter *mux.Router
 	Router       *mux.Router // Subrouter which is only accessible via secure origins (configured by admin)
 
+	API    *api.Service
 	DB     *db.Queries
 	DBConn *sql.DB
 	Cache  *cache.Cache
@@ -45,10 +47,15 @@ type Arguments struct {
 	Zipkin  string `default:"" placeholder:"\"http://localhost:9411/api/v2/spans\"" arg:"env:ZIPKIN" help:"The url of the Zipkin server. This feature is optional"`
 
 	GoogleServiceAccountPath string `default:"" placeholder:"\"./certs/serviceaccount.json\"" arg:"env:GOOGLE_APPLICATION_CREDENTIALS" help:"The path of the service account. required for the Android management"`
+	AzureADClientID          string `default:"" placeholder:"" arg:"env:AZUREAD_CLIENT_ID" help:"The application (client) ID. required for the AzureAD integration"`
+	AzureADClientSecret      string `default:"" placeholder:"" arg:"env:AZUREAD_CLIENT_SECRET" help:"The application client secret. required for the AzureAD integration"`
 
-	MattraxCloud       bool   `default:"false" arg:"env:MATTRAX_CLOUD" help:"Enable extra Saas Mattrax API endpoints. DO NOT use unless you know what you are doing!"`
-	MattraxCloudAuth   string `default:"" arg:"env:MATTRAX_CLOUD_AUTH" help:"Authentication key for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
-	MattraxCloudAuthIP string `default:"127.0.0.1" arg:"env:MATTRAX_CLOUD_AUTH_IP" help:"Allowed IP for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloud              bool   `default:"false" arg:"env:MATTRAX_CLOUD" help:"Enable extra Saas Mattrax API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloudAuth          string `default:"" arg:"env:MATTRAX_CLOUD_AUTH" help:"Authentication key for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloudAuthIP        string `default:"127.0.0.1" arg:"env:MATTRAX_CLOUD_AUTH_IP" help:"Allowed IP for Mattrax Cloud API endpoints. DO NOT use unless you know what you are doing!"`
+	MattraxCloudVendorEmail   string `default:"" arg:"env:MATTRAX_CLOUD_VENDOR_EMAIL" help:"The support email for the Mattrax cloud vendor!"`
+	MattraxCloudVendorWebsite string `default:"" arg:"env:MATTRAX_CLOUD_VENDOR_WEBSITE" help:"The support website for the Mattrax cloud vendor!"`
+	MattraxCloudVendorPhone   string `default:"" arg:"env:MATTRAX_CLOUD_VENDOR_PHONE" help:"The support phone number for the Mattrax cloud vendor!"`
 
 	Debug bool `help:"Enabled development mode. PLEASE DO NOT USE IN PRODUCTION!"`
 }

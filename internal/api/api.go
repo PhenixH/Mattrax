@@ -1,64 +1,52 @@
 package api
 
 import (
-	"net/http"
-	"regexp"
+	"context"
+	"database/sql"
+	"fmt"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/mux"
-	mattrax "github.com/mattrax/Mattrax/internal"
-	"github.com/mattrax/Mattrax/internal/middleware"
-	"github.com/mattrax/Mattrax/mdm"
+	"github.com/mattrax/Mattrax/internal/db"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var validate = validator.New()
-
-func init() {
-	var alphanumspaceRegex = regexp.MustCompile("^[a-zA-Z0-9 ]+$")
-	validate.RegisterValidation("alphanumspace", func(fl validator.FieldLevel) bool {
-		return alphanumspaceRegex.MatchString(fl.Field().String())
-	})
+// Service abstracts resources to prevent mishandling.
+type Service struct {
+	DB *db.Queries
 }
 
-// Mount initialises the API
-func Mount(srv *mattrax.Server) {
-	r := srv.Router.PathPrefix("/api").Subrouter()
-	r.Use(middleware.APIHeaders(srv))
-	r.Use(mux.CORSMethodMiddleware(srv.Router)) // TODO: Fix not working + remove temp bypass in API middleware
+var ErrIncorrectCredentials = fmt.Errorf("error authentication: invalid credentials")
+var ErrUserIsDisabled = fmt.Errorf("error authentication: user login disabled")
 
-	r.HandleFunc("/login", Login(srv)).Methods(http.MethodPost, http.MethodOptions).Name("/login")
+// Login authenticates a user to the API
+func (s *Service) Login(ctx context.Context, username, password string) (db.GetUserSecureRow, error) {
+	user, err := s.DB.GetUserSecure(ctx, username)
+	if err == sql.ErrNoRows {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
 
-	rAuthed := r.PathPrefix("/").Subrouter()
-	rAuthed.Use(middleware.RequireAuthentication(srv))
-
-	rAuthed.HandleFunc("/tenants", Tenants(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/tenants")
-	rAuthed.HandleFunc("/me/settings", SettingsMe(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/me/settings")
-	rAuthed.HandleFunc("/users", Users(srv)).Methods(http.MethodPost, http.MethodOptions).Name("/users")
-	rAuthed.HandleFunc("/{tenant}/users", Users(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/users")
-	rAuthed.HandleFunc("/user/{upn}", User(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/users/:upn")
-	rAuthed.HandleFunc("/{tenant}/user/{upn}", User(srv)).Methods(http.MethodDelete, http.MethodOptions).Name("/users/:upn")
-	rAuthed.HandleFunc("/{tenant}/devices", Devices(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices")
-	rAuthed.HandleFunc("/{tenant}/device/{udid}", Device(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/devices/:id")
-	rAuthed.HandleFunc("/{tenant}/device/{udid}/info", DeviceInformation(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/info")
-	rAuthed.HandleFunc("/{tenant}/device/{udid}/scope", DeviceScope(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/devices/:id/scope")
-	rAuthed.HandleFunc("/{tenant}/object/{oid}", Object(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/object/:id")
-	rAuthed.HandleFunc("/{tenant}/groups", Groups(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/groups")
-	rAuthed.HandleFunc("/{tenant}/group/{gid}", Group(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/groups/:id")
-	rAuthed.HandleFunc("/{tenant}/group/{gid}/policies", GroupPolicies(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions).Name("/groups/:id/policies")
-	rAuthed.HandleFunc("/{tenant}/group/{gid}/devices", GroupDevices(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions).Name("/groups/:id/devices")
-	rAuthed.HandleFunc("/{tenant}/policies", Policies(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/policies")
-	rAuthed.HandleFunc("/{tenant}/policy/{pid}", Policy(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/policies/:id")
-	rAuthed.HandleFunc("/{tenant}/policy/{pid}/scope", PolicyScope(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/policy/:id/scope")
-	rAuthed.HandleFunc("/{tenant}/applications", Applications(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions).Name("/applications")
-	rAuthed.HandleFunc("/{tenant}/application/{aid}", Application(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/application/:id")
-	rAuthed.HandleFunc("/{tenant}/domain/{domain}", TenantDomain(srv)).Methods(http.MethodPost, http.MethodPatch, http.MethodDelete, http.MethodOptions).Name("/:tenant/domain/:domain")
-	rAuthed.HandleFunc("/{tenant}/settings", SettingsTenant(srv)).Methods(http.MethodGet, http.MethodPatch, http.MethodOptions).Name("/:tenant/settings")
-	rAuthed.HandleFunc("/settings", SettingsOverview(srv)).Methods(http.MethodGet, http.MethodOptions).Name("/settings")
-
-	for _, p := range mdm.Protocols {
-		// TODO: rProtocol := rAuthed.PathPrefix("/" + p.ID()).Subrouter()
-		if err := p.MountAPI(rAuthed, r); err != nil {
-			panic(err)
-		}
+	} else if err != nil {
+		return db.GetUserSecureRow{}, fmt.Errorf("error retrieving user from DB: %w", err)
 	}
+
+	if !user.Password.Valid {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(password)); err == bcrypt.ErrMismatchedHashAndPassword {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
+	} else if err != nil {
+		return db.GetUserSecureRow{}, fmt.Errorf("error comparing password to hash: %w", err)
+	}
+
+	if user.Disabled {
+		return db.GetUserSecureRow{}, ErrUserIsDisabled
+	}
+
+	return user, nil
+}
+
+// New initialises a new API service
+func New(db *db.Queries) (s *Service, err error) {
+	return &Service{
+		DB: db,
+	}, nil
 }

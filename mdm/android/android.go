@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	pubsub2 "cloud.google.com/go/pubsub"
+	"github.com/gorilla/mux"
 	mattrax "github.com/mattrax/Mattrax/internal"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2/google"
@@ -99,7 +100,7 @@ func (p *Protocol) Init(srv *mattrax.Server) (err error) {
 	return nil
 }
 
-func (p *Protocol) Mount() error {
+func (p *Protocol) Mount(r *mux.Router) error {
 	return nil
 }
 

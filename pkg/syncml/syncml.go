@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mattrax/Mattrax/pkg"
 	"github.com/mattrax/xml"
 )
 
@@ -12,24 +11,17 @@ import (
 const MaxRequestBodySize = 524288
 
 // Read safely decodes a SyncML request from the HTTP body into a struct
-func Read(r *http.Request, w http.ResponseWriter) (Message, bool) {
+func Read(v *Message, w http.ResponseWriter, r *http.Request) error {
 	if r.ContentLength > MaxRequestBodySize {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler(fmt.Sprintf("Request body of size '%d' is larger than the maximum supported size of '%d'", r.ContentLength, MaxRequestBodySize), nil)
-		}
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		return Message{}, true
+		return fmt.Errorf("Error decoding request of type '%T': Request body of size '%d' is larger than the maximum supported size of '%d'", v, r.ContentLength, MaxRequestBodySize)
 	}
 
-	var v Message
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestBodySize)
-	if err := xml.NewDecoder(r.Body).Decode(&v); err != nil {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler(fmt.Sprintf("Error decoding request of type '%T'", v), err)
-		}
+	if err := xml.NewDecoder(r.Body).Decode(v); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		return Message{}, true
+		return fmt.Errorf("error decoding request of type '%T': %v", v, err)
 	}
 
-	return v, false
+	return nil
 }

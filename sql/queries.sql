@@ -42,7 +42,7 @@ SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 LIMIT $2 OFFSE
 SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 AND (upn || fullname || azuread_oid) LIKE $4 LIMIT $2 OFFSET $3;
 
 -- name: GetUserSecure :one
-SELECT fullname, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 1;
+SELECT fullname, disabled, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 1;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE upn=$1;

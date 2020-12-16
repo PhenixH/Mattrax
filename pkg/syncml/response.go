@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mattrax/Mattrax/pkg"
 	"github.com/mattrax/xml"
 )
 
@@ -15,17 +14,12 @@ type Response struct {
 }
 
 // Set creates a generic command on the response
-func (r *Response) Set(command, uri, dtype, format, data string) {
-	var meta *Meta = &Meta{
-		Format: format,
-		Type:   dtype,
-	}
-
+func (r *Response) Set(command, cmdID, uri string, meta *Meta, data interface{}) {
 	r.res.Body.Commands = append(r.res.Body.Commands, Command{
 		XMLName: xml.Name{
 			Local: command,
 		},
-		CmdID: fmt.Sprintf("%x", len(r.res.Body.Commands)+1),
+		CmdID: cmdID,
 		Body: []Command{
 			{
 				XMLName: xml.Name{
@@ -35,22 +29,21 @@ func (r *Response) Set(command, uri, dtype, format, data string) {
 					URI: uri,
 				},
 				Meta: meta,
-				Data: data,
+				Data: fmt.Sprintf("%v", data),
 			},
 		},
 	})
 }
 
 // Respond creates the final element and encodes the response
-func (r Response) Respond(w http.ResponseWriter) {
+func (r Response) Respond(w http.ResponseWriter) error {
 	r.res.Body.Final = "<Final />"
 	w.Header().Set("Content-Type", "application/vnd.syncml.dm+xml")
 	if err := xml.NewEncoder(w).Encode(r.res); err != nil {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler("Error marshaling syncml body", err)
-		}
 		w.WriteHeader(http.StatusInternalServerError)
+		return err
 	}
+	return nil
 }
 
 // SetStatus changes the SyncML body's status
@@ -92,6 +85,38 @@ func NewResponse(cmd Message) Response {
 						CmdRef: "0",
 						Cmd:    "SyncHdr",
 						Data:   fmt.Sprintf("%v", StatusOK),
+					},
+				},
+			},
+		},
+	}
+}
+
+// NewBlankResponse creates a new empty SyncML Envelope with only a Status element
+func NewBlankResponse(cmd Message, status int) Response {
+	return Response{
+		res: Message{
+			XmlnA: "syncml:metinf",
+			Header: Header{
+				VerDTD:         cmd.Header.VerDTD,
+				VerProto:       cmd.Header.VerProto,
+				SessionID:      cmd.Header.SessionID,
+				MsgID:          cmd.Header.MsgID,
+				TargetURI:      cmd.Header.SourceURI,
+				SourceURI:      cmd.Header.TargetURI,
+				MetaMaxMsgSize: MaxRequestBodySize,
+			},
+			Body: Body{
+				Commands: []Command{
+					{
+						XMLName: xml.Name{
+							Local: "Status",
+						},
+						CmdID:  "1",
+						MsgRef: cmd.Header.MsgID,
+						CmdRef: "0",
+						Cmd:    "SyncHdr",
+						Data:   fmt.Sprintf("%v", status),
 					},
 				},
 			},

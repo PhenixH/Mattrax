@@ -27,11 +27,16 @@ var NillableField = struct {
 
 // PolicyXCEPResponse contains the policy information and its policies
 type PolicyXCEPResponse struct {
-	PolicyID           string       `xml:"policyID"`
-	PolicyFriendlyName string       `xml:"policyFriendlyName"`
-	NextUpdateHours    interface{}  `xml:"nextUpdateHours"`
-	PoliciesNotChanged interface{}  `xml:"policiesNotChanged"`
-	Policies           []XCEPPolicy `xml:"policies"`
+	PolicyID           string      `xml:"policyID"`
+	PolicyFriendlyName string      `xml:"policyFriendlyName"`
+	NextUpdateHours    interface{} `xml:"nextUpdateHours"`
+	PoliciesNotChanged interface{} `xml:"policiesNotChanged"`
+	Policies           XCEPPolicies
+}
+
+type XCEPPolicies struct {
+	XMLName  xml.Name `xml:"policies"`
+	Policies []XCEPPolicy
 }
 
 // XCEPPolicy contains the policies configuration
@@ -88,29 +93,31 @@ func NewPolicyResponse(relatesTo, policyID, policyFriendlyName string) ResponseE
 					PolicyFriendlyName: policyFriendlyName,
 					NextUpdateHours:    NillableField,
 					PoliciesNotChanged: NillableField,
-					Policies: []XCEPPolicy{
-						{
-							OIDReferenceID: 0, // References to OID defined in OIDs section
-							CAs:            NillableField,
-							Attributes: XCEPAttributes{
-								PolicySchema: 3,
-								PrivateKeyAttributes: XCEPPrivateKeyAttributes{
-									MinimalKeyLength:      4096,
-									KeySpec:               NillableField,
-									KeyUsageProperty:      NillableField,
-									Permissions:           NillableField,
-									AlgorithmOIDReference: NillableField,
-									CryptoProviders:       NillableField,
+					Policies: XCEPPolicies{
+						Policies: []XCEPPolicy{
+							{
+								OIDReferenceID: 0, // References to OID defined in OIDs section
+								CAs:            NillableField,
+								Attributes: XCEPAttributes{
+									PolicySchema: 3,
+									PrivateKeyAttributes: XCEPPrivateKeyAttributes{
+										MinimalKeyLength:      4096,
+										KeySpec:               NillableField,
+										KeyUsageProperty:      NillableField,
+										Permissions:           NillableField,
+										AlgorithmOIDReference: NillableField,
+										CryptoProviders:       NillableField,
+									},
+									SupersededPolicies:        NillableField,
+									PrivateKeyFlags:           NillableField,
+									SubjectNameFlags:          NillableField,
+									EnrollmentFlags:           NillableField,
+									GeneralFlags:              NillableField,
+									HashAlgorithmOIDReference: 0,
+									RARequirements:            NillableField,
+									KeyArchivalAttributes:     NillableField,
+									Extensions:                NillableField,
 								},
-								SupersededPolicies:        NillableField,
-								PrivateKeyFlags:           NillableField,
-								SubjectNameFlags:          NillableField,
-								EnrollmentFlags:           NillableField,
-								GeneralFlags:              NillableField,
-								HashAlgorithmOIDReference: 0,
-								RARequirements:            NillableField,
-								KeyArchivalAttributes:     NillableField,
-								Extensions:                NillableField,
 							},
 						},
 					},

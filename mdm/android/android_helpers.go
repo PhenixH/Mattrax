@@ -2,6 +2,15 @@ package android
 
 import "github.com/mattrax/Mattrax/internal/db"
 
+func MattraxManagementScope(deviceScope string) (scope db.ManagementScope) {
+	if deviceScope == "DEVICE_OWNER" {
+		scope = db.ManagementScopeDevice
+	} else if deviceScope == "PROFILE_OWNER" {
+		scope = db.ManagementScopeAfwProfile
+	}
+	return scope
+}
+
 func MattraxDeviceState(deviceState string) (state db.DeviceState) {
 	if deviceState == "ACTIVE" {
 		state = db.DeviceStateManaged
@@ -35,13 +44,4 @@ func MattraxDeviceOwnership(deviceOwnership string) (ownership db.DeviceOwnershi
 		ownership = db.DeviceOwnershipPersonal
 	}
 	return ownership
-}
-
-func MattraxManagementScope(deviceScope string) (scope db.ManagementScope) {
-	if deviceScope == "DEVICE_OWNER" {
-		scope = db.ManagementScopeDevice
-	} else if deviceScope == "PROFILE_OWNER" {
-		scope = db.ManagementScopeAfwProfile
-	}
-	return scope
 }

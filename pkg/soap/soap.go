@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mattrax/Mattrax/pkg"
 	"github.com/mattrax/xml"
 )
 
@@ -70,48 +69,38 @@ type ResponseEnvelopeBody struct {
 }
 
 // Read safely decodes a SOAP request from the HTTP body into a struct
-func Read(v interface{}, r *http.Request, w http.ResponseWriter) bool {
+func Read(v interface{}, w http.ResponseWriter, r *http.Request) error {
 	if r.ContentLength > MaxRequestBodySize {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler(fmt.Sprintf("Request body of size '%d' is larger than the maximum supported size of '%d'", r.ContentLength, MaxRequestBodySize), nil)
-		}
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		return true
+		return fmt.Errorf("error reading request body of size '%d' as its larger than the maximum supported size of '%d'", r.ContentLength, MaxRequestBodySize)
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestBodySize)
 	if err := xml.NewDecoder(r.Body).Decode(v); err != nil {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler(fmt.Sprintf("Error decoding request of type '%T'", v), err)
-		}
 		w.WriteHeader(http.StatusBadRequest)
-		return true
+		return fmt.Errorf("error decoding request of type '%T': %v", v, err)
 	}
 
-	return false
+	return nil
 }
 
 // Respond encodes a SOAP response from a struct into the HTTP response
-func Respond(v ResponseEnvelope, w http.ResponseWriter) {
+func Respond(v ResponseEnvelope, w http.ResponseWriter) error {
 	body, err := xml.Marshal(v)
 	if err != nil {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler("Error marshaling syncml body", err)
-		}
-
-		if fmt.Sprintf("%T", v.Body.Body) != "SOAPFault" {
+		v = NewFault("s:Receiver", "s:InternalServiceFault", "", "Server encountered an error. Please check the server logs for more info", "")
+		var err2 error
+		if body, err2 = xml.Marshal(v); err2 != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			var res = NewFault("s:Receiver", "s:InternalServiceFault", "", "Mattrax encountered an error. Please check the server logs for more info", "")
-			Respond(res, w)
+			return fmt.Errorf("error marshalling response of type '%T': %v", v, err)
 		}
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/soap+xml; charset=utf-8")
 	w.Header().Set("Content-Length", fmt.Sprintf("%v", len(body)))
 	if _, err := w.Write(body); err != nil {
-		if pkg.ErrorHandler != nil {
-			pkg.ErrorHandler("Error writing body to client", err)
-		}
+		return fmt.Errorf("error writing response body to client: %v", err)
 	}
+
+	return nil
 }

@@ -1,17 +1,16 @@
-package api
+package http_api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	mattrax "github.com/mattrax/Mattrax/internal"
+	"github.com/mattrax/Mattrax/internal/api"
 	"github.com/mattrax/Mattrax/internal/authentication"
 	"github.com/mattrax/Mattrax/internal/db"
 	"github.com/openzipkin/zipkin-go"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(srv *mattrax.Server) http.HandlerFunc {
@@ -38,21 +37,18 @@ func Login(srv *mattrax.Server) http.HandlerFunc {
 
 		var audience = "dashboard" // TODO: Set to enrollment if device enrolling process
 
-		user, err := srv.DB.GetUserSecure(r.Context(), cmd.UPN)
-		if err == sql.ErrNoRows {
-			span.Tag("err", fmt.Sprintf("user does not exist"))
+		user, err := srv.API.Login(r.Context(), cmd.UPN, cmd.Password)
+		if err == api.ErrIncorrectCredentials {
+			span.Tag("warn", fmt.Sprintf("%s", err))
 			w.WriteHeader(http.StatusUnauthorized)
+			return
+		} else if err == api.ErrUserIsDisabled {
+			span.Tag("warn", fmt.Sprintf("%s", err))
+			w.WriteHeader(http.StatusForbidden)
 			return
 		} else if err != nil {
-			log.Printf("[GetUserSecure Error]: %s\n", err)
-			span.Tag("err", fmt.Sprintf("[GetUserSecure Error]: %s", err))
+			span.Tag("err", fmt.Sprintf("error authenticating user: %s", err))
 			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !user.Password.Valid {
-			span.Tag("err", fmt.Sprintf("user does not have a password set"))
-			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -62,15 +58,13 @@ func Login(srv *mattrax.Server) http.HandlerFunc {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(cmd.Password)); err == bcrypt.ErrMismatchedHashAndPassword {
-			span.Tag("warn", fmt.Sprintf("user password did not match hash"))
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		} else if err != nil {
-			span.Tag("err", fmt.Sprintf("error comparing password to hash: %s", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		// sessionID, err := srv.DB.NewUserSession(r.Context(), cmd.UPN)
+		// if err != nil {
+		// 	log.Printf("[GetUserTenants Error]: %s\n", err)
+		// 	span.Tag("err", fmt.Sprintf("error retrieving users tenants: %s", err))
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	return
+		// }
 
 		authToken, _, err := srv.Auth.IssueToken(audience, authentication.AuthClaims{
 			Subject:  cmd.UPN,

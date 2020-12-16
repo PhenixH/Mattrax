@@ -127,6 +127,7 @@ export default {
     },
     titleCaseStr(str: string): string {
       if (str === '') return ''
+      if (str === null) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
     },
   },

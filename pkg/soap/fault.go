@@ -24,20 +24,17 @@ type FaultReason struct {
 
 // FaultDeviceEnrollmentServiceError contains extra error codes (which sometimes have special UI's) and a traceid which can be used trace requests between the client and server logs
 type FaultDeviceEnrollmentServiceError struct {
-	ErrorType string `xml:"ErrorType"`
-	Message   string `xml:"Message"`
-	TraceID   string `xml:"TraceId"`
+	ErrorType string `xml:"ErrorType,omitempty"`
+	Message   string `xml:"Message,omitempty"`
+	TraceID   string `xml:"TraceId,omitempty"`
 }
 
 // NewFault creates a new fault
 func NewFault(causer, code, errortype, reason, traceid string) ResponseEnvelope {
-	var deviceEnrollmentServiceError FaultDeviceEnrollmentServiceError
-	if errortype != "" {
-		deviceEnrollmentServiceError = FaultDeviceEnrollmentServiceError{
-			ErrorType: errortype,
-			Message:   reason,
-			TraceID:   traceid,
-		}
+	var deviceEnrollmentServiceError = FaultDeviceEnrollmentServiceError{
+		ErrorType: errortype,
+		Message:   reason,
+		TraceID:   traceid,
 	}
 
 	return ResponseEnvelope{
