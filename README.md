@@ -10,7 +10,9 @@ Mattrax is under super **heavy development**. The Mattrax Cloud (SaaS version) w
 
 ## Developing
 
-Mattrax is built using [Go](https://golang.org) and uses the [PostgreSQL](https://www.postgresql.org) database. To setup a development environment use the instructions below.
+Mattrax is built using [Go](https://golang.org) and uses a [PostgreSQL](https://www.postgresql.org) database. To setup a development environment use the instructions below.
+
+HTTPS certificates are required to start the server. [Let's Encrypt](https://letsencrypt.org) can be used to issue trusted certificates for free. The following commands expect the certificate to be at the path `./certs/tls.crt` and the certificate's key at path `./certs/tls.key` but this can be modified.
 
 ```bash
 # Terminal 1: The Postgres database
@@ -21,7 +23,7 @@ go run ./cmd/mattrax --db "postgres://mattrax_db:password@localhost/mattrax?sslm
 cd dashboard
 npm i
 API_BASE_URL="https://mdm.example.com/api" npm run dev
-# Open http://localhost:3000 in your browser and use the default credentials logged to the console.
+# Open http://localhost:3000 in your browser and use the default credentials which are logged to the console on first run of the Go server.
 ```
 
 This project uses [sqlc](https://github.com/kyleconroy/sqlc) so the command `sqlc generate` is used to generate the `internal/db` package from `sql/queries.sql`.
