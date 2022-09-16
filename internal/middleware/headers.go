@@ -10,7 +10,7 @@ import (
 func FrontendHeaders() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Content-Security-Policy", "default-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com") // TODO: Remove unsafe-inline and cdns, use trusted types
+			w.Header().Add("Content-Security-Policy", "default-src 'self' 'unsafe-inline'")
 			w.Header().Add("X-XSS-Protection", "1; mode=block")
 			w.Header().Add("X-Frame-Options", "DENY")
 			w.Header().Add("X-Content-Type-Options", "nosniff")

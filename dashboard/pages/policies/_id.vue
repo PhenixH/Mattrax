@@ -1,28 +1,40 @@
 <template>
   <div v-if="loading" class="loading">Loading Policy...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <BookIcon view-box="0 0 24 24" height="40" width="40" />{{
-            policy.name
-          }}
-        </h1>
-      </div>
-      <div>
-        <h2 class="subtitley">{{ policy.description }}</h2>
-      </div>
-    </div>
-
-    <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/policies">Policies</NuxtLink></li>
+      </ul>
+      <h1>{{ policy.name }}</h1>
+    </PageHead>
+    <PageNav>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace(
+              '/policies/' + this.$route.params.id,
+              ''
+            ) == '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-      <button class="w3-bar-item w3-button" @click="navigate('/payloads')">
-        Payloads
+      <button
+        :class="{
+          active:
+            this.$route.path.replace(
+              '/policies/' + this.$route.params.id,
+              ''
+            ) == '/scope',
+        }"
+        @click="navigate('/scope')"
+      >
+        Scope
       </button>
-    </div>
-    <NuxtChild :policy="policy" />
+    </PageNav>
+    <NuxtChild ref="body" :policy="policy" />
   </div>
 </template>
 
@@ -38,6 +50,7 @@ export default Vue.extend({
     }
   },
   created() {
+    this.$store.commit('dashboard/setDeletable', true)
     this.$store
       .dispatch('policies/getByID', this.$route.params.id)
       .then((policy) => {
@@ -50,8 +63,12 @@ export default Vue.extend({
     navigate(pathSuffix: string) {
       this.$router.push('/policies/' + this.$route.params.id + pathSuffix)
     },
+    async delete(): Promise<string> {
+      await this.$store.dispatch('policies/deletePolicy', this.$route.params.id)
+      return '/policies'
+    },
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>

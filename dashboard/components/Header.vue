@@ -1,7 +1,24 @@
 <template>
   <nav class="nav">
-    <NuxtLink to="/" exact class="brand">
-      Mattrax - <span>{{ $store.state.authentication.user.org }}</span>
+    <span
+      :class="{
+        'disable-select': true,
+        'menu-toggle': true,
+        right: $store.state.dashboard.menuActive,
+      }"
+      @click="$store.commit('dashboard/toggleMenuActive')"
+    >
+      <MenuIcon />
+    </span>
+    <NuxtLink to="/" exact class="mttx-brand">
+      Mattrax -
+      <NuxtLink to="/login/tenants" exact
+        ><span>{{
+          $store.state.tenants.tenant !== null
+            ? $store.state.tenants.tenant.display_name
+            : ''
+        }}</span></NuxtLink
+      >
     </NuxtLink>
 
     <div class="navRight">
@@ -13,8 +30,7 @@
           <CaretIcon />
         </span>
         <div class="dropdown-content">
-          <NuxtLink to="/settings/users"> Edit Account </NuxtLink>
-          <!-- <a href="#" @click.prevent="router.">Edit Account</a> -->
+          <NuxtLink to="/settings/user"> Edit Account </NuxtLink>
           <a href="#" @click.prevent="logout()">Logout</a>
         </div>
       </div>
@@ -22,12 +38,8 @@
   </nav>
 </template>
 
-<script>
-// import NotificationIcon from '@/assets/icon/notification.svg?inline'
-import CaretIcon from '@/assets/icon/caret.svg?inline'
-
+<script lang="ts">
 export default {
-  components: { /* NotificationIcon, */ CaretIcon },
   methods: {
     logout() {
       this.$store
@@ -43,7 +55,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .nav {
   height: 50px;
   position: fixed;
@@ -55,8 +67,27 @@ export default {
   padding: 0 15px;
 }
 
-.brand span {
+.menu-toggle svg {
+  color: white;
+  transition: all 0.2s linear;
+}
+
+.menu-toggle.right svg {
+  transform: rotate(90deg);
+  transition: all 0.2s linear;
+}
+
+.mttx-brand span {
   font-size: 14px;
+}
+
+.mttx-brand a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mttx-brand a:hover {
+  color: #d8d8d8;
 }
 
 .navRight {
@@ -108,5 +139,13 @@ export default {
 
 .dropdown:hover .dropdown-content {
   display: block;
+}
+
+.disable-select {
+  user-select: none; /* supported by Chrome and Opera */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
 }
 </style>

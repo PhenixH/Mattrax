@@ -1,33 +1,52 @@
 package api
 
 import (
-	"net/http"
+	"context"
+	"database/sql"
+	"fmt"
 
-	"github.com/gorilla/mux"
-	mattrax "github.com/mattrax/Mattrax/internal"
+	"github.com/mattrax/Mattrax/internal/db"
+	"golang.org/x/crypto/bcrypt"
 )
 
-const MaxJSONBodySize = 2097152
+// Service abstracts resources to prevent mishandling.
+type Service struct {
+	DB *db.Queries
+}
 
-// Mount initialises the API
-func Mount(srv *mattrax.Server) {
-	r := srv.Router.PathPrefix("/api").Subrouter()
-	r.Use(Headers(srv))
-	r.Use(mux.CORSMethodMiddleware(r))
+var ErrIncorrectCredentials = fmt.Errorf("error authentication: invalid credentials")
+var ErrUserIsDisabled = fmt.Errorf("error authentication: user login disabled")
 
-	r.HandleFunc("/login", Login(srv)).Methods(http.MethodPost, http.MethodOptions)
+// Login authenticates a user to the API
+func (s *Service) Login(ctx context.Context, username, password string) (db.GetUserSecureRow, error) {
+	user, err := s.DB.GetUserSecure(ctx, username)
+	if err == sql.ErrNoRows {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
 
-	rAuthed := r.PathPrefix("/").Subrouter()
-	rAuthed.Use(RequireAuthentication(srv))
+	} else if err != nil {
+		return db.GetUserSecureRow{}, fmt.Errorf("error retrieving user from DB: %w", err)
+	}
 
-	rAuthed.HandleFunc("/devices", Devices(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/device/{id}", Device(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/device/{id}/info", DeviceInformation(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/device/{id}/scope", DeviceScope(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/groups", Groups(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/group/{id}", Group(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/policies", Policies(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/policy/{id}", Policy(srv)).Methods(http.MethodGet, http.MethodOptions)
-	rAuthed.HandleFunc("/users", Users(srv)).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
-	rAuthed.HandleFunc("/user/{upn}", User(srv)).Methods(http.MethodGet, http.MethodOptions)
+	if !user.Password.Valid {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(password)); err == bcrypt.ErrMismatchedHashAndPassword {
+		return db.GetUserSecureRow{}, ErrIncorrectCredentials
+	} else if err != nil {
+		return db.GetUserSecureRow{}, fmt.Errorf("error comparing password to hash: %w", err)
+	}
+
+	if user.Disabled {
+		return db.GetUserSecureRow{}, ErrUserIsDisabled
+	}
+
+	return user, nil
+}
+
+// New initialises a new API service
+func New(db *db.Queries) (s *Service, err error) {
+	return &Service{
+		DB: db,
+	}, nil
 }

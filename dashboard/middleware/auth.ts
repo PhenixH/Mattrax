@@ -7,10 +7,20 @@ export default async function (context: any) {
     'authentication/isAuthenticated'
   )
   if (!authenticated) {
-    let params = ''
-    if (context.route.fullPath !== '/') {
-      params += '?redirect_to=' + encodeURIComponent(context.route.fullPath)
-    }
-    context.app.router.push('/login' + params)
+    context.app.router.push({
+      path: '/login',
+      query:
+        context.route.fullPath !== '/'
+          ? { redirect_to: context.route.fullPath }
+          : {},
+    })
+  } else if (Date.now() >= context.store.state.authentication.user.exp * 1000) {
+    context.app.router.push({
+      path: '/login',
+      query:
+        context.route.fullPath !== '/'
+          ? { redirect_to: context.route.fullPath }
+          : {},
+    })
   }
 }

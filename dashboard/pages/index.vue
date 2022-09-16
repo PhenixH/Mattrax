@@ -1,15 +1,17 @@
 <template>
   <div class="container">
-    <Breadcrumb />
     <div>
       <h1 class="title">Mattrax Dashboard</h1>
       <div class="links">
+        <a href="https://mattrax.app" target="_blank" class="button--grey">
+          Website
+        </a>
         <a
-          href="https://github.com/mattrax/Mattrax"
+          href="https://mattrax.app?slack"
           target="_blank"
           class="button--grey"
         >
-          GitHub
+          Join Slack
         </a>
         <a
           href="https://github.com/mattrax/Mattrax/issues/new"
@@ -17,13 +19,6 @@
           class="button--grey"
         >
           Report Bug
-        </a>
-        <a
-          href="mailto:oscar@otbeaumont.me?subject=Mattrax Support:"
-          target="_blank"
-          class="button--grey"
-        >
-          Support
         </a>
       </div>
     </div>
@@ -41,7 +36,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .container {
   margin: 0 auto;
   min-height: 100vh;

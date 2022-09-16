@@ -1,41 +1,35 @@
 <template>
   <div v-if="loading" class="loading">Loading User...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <UserIcon view-box="0 0 24 24" height="40" width="40" />{{
-            user.fullname
-          }}
-        </h1>
-      </div>
-      <div class="panel-body">
-        <div class="datapoint">
-          <h2>User Principal Name:</h2>
-          <p>{{ user.upn }}</p>
-        </div>
-        <div v-if="user.azuread_oid" class="datapoint">
-          <h2>Azure AD OID:</h2>
-          <p>{{ user.azuread_oid }}</p>
-        </div>
-        <div v-if="user.azuread_oid" class="datapoint">
-          <h2>Permission Level:</h2>
-          <p>
-            {{
-              user.permission_level.charAt(0).toUpperCase() +
-              user.permission_level.slice(1)
-            }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/users">Users</NuxtLink></li>
+      </ul>
+      <h1>{{ user.fullname }}</h1>
+    </PageHead>
+    <PageNav>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace('/users/' + this.$route.params.id, '') ==
+            '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-    </div> -->
-    <NuxtChild />
+      <button
+        :class="{
+          active:
+            this.$route.path.replace('/users/' + this.$route.params.id, '') ==
+            '/groups',
+        }"
+        @click="navigate('/groups')"
+      >
+        Groups
+      </button>
+    </PageNav>
+    <NuxtChild ref="body" :user="user" />
   </div>
 </template>
 
@@ -51,6 +45,7 @@ export default Vue.extend({
     }
   },
   created() {
+    this.$store.commit('dashboard/setDeletable', true)
     this.$store
       .dispatch('users/getByID', this.$route.params.id)
       .then((user) => {
@@ -63,23 +58,12 @@ export default Vue.extend({
     navigate(pathSuffix: string) {
       this.$router.push('/users/' + this.$route.params.id + pathSuffix)
     },
+    async delete(): Promise<string> {
+      await this.$store.dispatch('users/deleteUser', this.$route.params.id)
+      return '/users'
+    },
   },
 })
 </script>
 
-<style>
-.datapoint {
-  margin: 4px 10px;
-}
-
-.datapoint h2 {
-  display: inline-block;
-  font-size: 1.1em;
-  font-weight: 700;
-  padding: 0px;
-}
-
-.datapoint p {
-  display: inline-block;
-}
-</style>
+<style scoped></style>

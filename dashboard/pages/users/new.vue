@@ -1,42 +1,32 @@
 <template>
   <div v-if="loading" class="loading">Creating User...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <UserIcon view-box="0 0 24 24" height="40" width="40" />Create New
-          User
-        </h1>
-      </div>
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/users">Users</NuxtLink></li>
+      </ul>
+      <h1>Create New User</h1>
+    </PageHead>
+    <div class="page-body">
       <div>
         <form class="create-form" @submit.prevent="createUser">
+          <p class="field-title">Name:</p>
           <input
             v-model="user.fullname"
             type="text"
             placeholder="Chris Green"
             required
           />
+          <p class="field-title">Email:</p>
           <input
             v-model="user.upn"
             type="email"
-            placeholder="chris@otbeaumont.me"
+            placeholder="chris@mattrax.app"
             required
           />
-          <div class="password-field">
-            <input
-              v-model="user.password"
-              :type="passwordVisible ? 'text' : 'password'"
-              placeholder="password"
-              minlength="8"
-              maxlength="100"
-            />
-            <span
-              @mousedown="passwordVisible = true"
-              @mouseup="passwordVisible = false"
-            >
-              <EyeIcon view-box="0 0 8 8" height="24" width="24" />
-            </span>
-          </div>
+          <p class="field-title">Password:</p>
+          <PasswordField :value.sync="user.password" />
 
           <button type="submit" class="submit">Create User</button>
         </form>
@@ -53,7 +43,6 @@ export default Vue.extend({
   data() {
     return {
       loading: false,
-      passwordVisible: false,
       user: {
         fullname: '',
         upn: '',
@@ -73,7 +62,7 @@ export default Vue.extend({
 })
 </script>
 
-<style>
+<style scoped>
 .create-form {
   padding: 10px;
 }
@@ -84,20 +73,6 @@ export default Vue.extend({
   padding: 5px;
   width: 100%;
   max-width: 300px;
-}
-
-.password-field {
-  width: 300px;
-  position: relative;
-}
-
-.password-field span {
-  position: absolute;
-  top: 0;
-  right: 0px;
-  z-index: 2;
-  top: 2.5px;
-  cursor: pointer;
 }
 
 .submit {

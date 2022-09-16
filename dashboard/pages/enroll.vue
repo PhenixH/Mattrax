@@ -1,10 +1,17 @@
 <template>
   <div class="page-content">
+    <span
+      @click="
+        $route.name === 'enroll'
+          ? $router.push('/devices')
+          : $router.replace('./')
+      "
+    >
+      <LogoutIcon class="back-btn" view-box="0 0 8 8" height="20" width="20" />
+    </span>
     <h1 class="title">Mattrax Enrollment</h1>
-    <button v-if="platform == 'Win32'" @click="triggerEnroll()">
-      ENROLL THIS DEVICE
-    </button>
-    <p v-else>Your device is not supported!</p>
+
+    <NuxtChild />
   </div>
 </template>
 
@@ -13,24 +20,13 @@ import Vue from 'vue'
 
 export default Vue.extend({
   middleware: ['auth'],
-  data() {
-    return {
-      platform: window.navigator.platform,
-    }
-  },
-  methods: {
-    triggerEnroll() {
-      window.open(
-        'ms-device-enrollment:?mode=mdm&username=' +
-          this.$store.state.authentication.user.upn
-      )
-    },
-  },
 })
 </script>
 
-<style>
-.title {
-  font-size: 29px;
+<style scoped>
+.back-btn {
+  position: absolute;
+  top: 15px;
+  right: 10px;
 }
 </style>

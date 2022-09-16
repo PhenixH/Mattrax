@@ -1,110 +1,194 @@
 -- DO NOT RUN THIS FILE. It is used along with sqlc to generate type safe Go from SQL
 
--- name: GetUsers :many
--- Exposed via API
-SELECT upn, fullname, permission_level FROM users LIMIT 100;
+-- name: GetUserCount :one
+SELECT COUNT(*) FROM users;
 
--- name: GetUser :one
--- Exposed via API
-SELECT upn, fullname, azuread_oid, permission_level FROM users WHERE upn = $1 LIMIT 1;
+-------- Tenant
 
--- name: GetUserForLogin :one
-SELECT fullname, password, mfa_token, permission_level FROM users WHERE upn = $1 LIMIT 1;
+-- name: GetTenant :one
+SELECT display_name, primary_domain, email, phone, afw_enterprise_id FROM tenants WHERE id = $1 LIMIT 1;
 
--- name: CreateUser :exec
--- Exposed via API
+-- name: GetTenantDomains :many
+SELECT domain, linking_code, verified FROM tenant_domains WHERE tenant_id = $1;
+
+-- name: GetTenantDomain :one
+SELECT linking_code, verified FROM tenant_domains WHERE domain=$1 AND tenant_id=$2 LIMIT 1;
+
+-- name: AddDomainToTenant :one
+INSERT INTO tenant_domains(tenant_id, domain) VALUES ($1, $2) RETURNING linking_code;
+
+-- name: UpdateDomain :exec
+UPDATE tenant_domains SET verified=$3 WHERE domain=$1 AND tenant_id=$2;
+
+-- name: DeleteDomain :exec
+DELETE FROM tenant_domains WHERE domain=$1 AND tenant_id=$2;
+
+-------- User
+
+-- name: NewUser :exec
+INSERT INTO users(upn, fullname, password, tenant_id) VALUES ($1, $2, $3, $4);
+
+-- name: NewGlobalUser :exec
 INSERT INTO users(upn, fullname, password) VALUES ($1, $2, $3);
 
--- name: NewAzureADUser :one
-INSERT INTO users(upn, fullname, azuread_oid) VALUES($1, $2, $3) RETURNING upn, fullname, azuread_oid, permission_level; -- TODO: Insert or Update
+-- name: GetUser :one
+SELECT upn, fullname, disabled, azuread_oid FROM users WHERE upn = $1 LIMIT 1;
 
--- TODO: Merge all NewDevice functions to single query
+-- name: GetUsersInTenant :many
+SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+-- Once https://github.com/kyleconroy/sqlc/issues/778 is fixed change query to (including the ByQuery one): SELECT upn, fullname, azuread_oid FROM users INNER JOIN tenant_users ON users.upn = tenant_users.user_upn WHERE tenant_users.tenant_id = $1 UNION ALL SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1;
 
--- name: NewDevice :one
-INSERT INTO devices(udid, state, enrollment_type, name, hw_dev_id, operating_system, azure_did, enrolled_by) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
+-- name: GetUsersInTenantByQuery :many
+SELECT upn, fullname, azuread_oid FROM users WHERE tenant_id = $1 AND (upn || fullname || azuread_oid) LIKE $4 LIMIT $2 OFFSET $3;
 
--- name: NewDeviceReplacingExisting :exec
-UPDATE devices SET state=$2, enrollment_type=$3, name=$4, hw_dev_id=$5, operating_system=$6, azure_did=$7, nodecache_version='', lastseen=NOW(), lastseen_status=0, enrolled_at=NOW(), enrolled_by=$8 WHERE udid = $1;
+-- name: GetUserSecure :one
+SELECT fullname, disabled, password, mfa_token, tenant_id FROM users WHERE upn = $1 LIMIT 1;
 
--- name: NewDeviceReplacingExistingResetCache :exec
-DELETE FROM device_cache WHERE device_id=$1;
+-- name: DeleteUser :exec
+DELETE FROM users WHERE upn=$1;
 
--- name: NewDeviceReplacingExistingResetInventory :exec
-DELETE FROM device_cache WHERE device_id=$1;
+-- name: DeleteUserInTenant :exec
+DELETE FROM users WHERE upn=$1 AND tenant_id=$2;
 
--- name: SetDeviceState :exec
-UPDATE devices SET state=$2 WHERE id = $1;
+-- name: NewUserFromAzureAD :exec
+INSERT INTO users(upn, fullname, azuread_oid) VALUES ($1, $2, $3);
 
--- name: DeviceUserUnenrollment :exec
-UPDATE devices SET state='user_unenrolled', enrollment_type='Unenrolled', azure_did='', nodecache_version='', lastseen=to_timestamp(CAST(0 as bigint)/1000), lastseen_status=0, enrolled_at=to_timestamp(CAST(0 as bigint)/1000), enrolled_by=NULL WHERE id = $1;
+-- name: NewTenant :one
+INSERT INTO tenants(display_name, primary_domain) VALUES ($1, $2) RETURNING id;
 
--- name: GetDevices :many
--- Exposed via API
-SELECT id, name, model FROM devices LIMIT 100;
+-- name: ScopeUserToTenant :exec
+INSERT INTO tenant_users(user_upn, tenant_id, permission_level) VALUES ($1, $2, $3);
 
--- name: GetBasicDevice :one
--- Exposed via API
-SELECT id, name, description, model FROM devices WHERE id = $1 LIMIT 1;
+-- name: GetUserPermissionLevelForTenant :one
+SELECT permission_level FROM tenant_users WHERE user_upn = $1 AND tenant_id = $2;
 
--- name: GetBasicDeviceScopedGroups :many
--- Exposed via API
-SELECT groups.id, groups.name FROM groups INNER JOIN group_devices ON group_devices.group_id=groups.id WHERE group_devices.device_id = $1;
+-- name: GetUserTenants :many
+SELECT id, display_name, primary_domain, description FROM tenants INNER JOIN tenant_users ON tenants.id = tenant_users.tenant_id WHERE tenant_users.user_upn = $1;
 
--- name: GetBasicDeviceScopedPolicies :many
--- Exposed via API
-SELECT * FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1;
+-- name: RemoveUserFromTenant :exec
+DELETE FROM tenant_users WHERE user_upn=$1 AND tenant_id=$2;
+
+-------- Object Actions
+
+-- name: GetObject :one
+SELECT filename, data FROM objects WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: CreateObject :exec
+INSERT INTO objects(tenant_id, filename, data) VALUES ($1, $2, $3) RETURNING id;
+
+-- name: UpdateObject :exec
+UPDATE objects SET filename=$3, data=$4 WHERE id=$1 AND tenant_id=$2;
+
+-------- Group Actions
+
+-- name: NewGroup :one
+INSERT INTO groups(name, tenant_id) VALUES ($1, $2) RETURNING id;
 
 -- name: GetGroups :many
--- Exposed via API
-SELECT id, name, description, priority FROM groups LIMIT 100;
+SELECT id, name, description FROM groups WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetGroup :one
--- Exposed via API
-SELECT id, name, description, priority FROM groups WHERE id = $1 LIMIT 1;
+SELECT id, name, description FROM groups WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
--- name: GetDevice :one
-SELECT * FROM devices WHERE id = $1 LIMIT 1;
+-- name: DeleteGroup :exec
+DELETE FROM groups WHERE id = $1 AND tenant_id = $2;
 
--- name: GetDeviceByUDID :one
-SELECT * FROM devices WHERE udid = $1 LIMIT 1;
+-- name: GetDevicesInGroup :many
+SELECT devices.id, devices.name FROM group_devices INNER JOIN devices ON devices.id=group_devices.device_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4;
 
--- name: DeviceCheckinStatus :exec
-UPDATE devices SET lastseen=NOW(), lastseen_status=$2 WHERE id = $1; -- TODO: Merge this with last checkin status
+-- name: AddDeviceToGroup :exec
+INSERT INTO group_devices(group_id, device_id) VALUES ($1, $2);
 
--- name: GetDevicesPayloads :many
-SELECT policies_payload.* FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id INNER JOIN policies_payload ON policies_payload.policy_id=group_policies.policy_id WHERE group_devices.device_id = $1;
+-- name: RemoveDeviceFromGroup :exec
+DELETE FROM group_devices WHERE group_id = $1 AND device_id = $2;
 
--- name: GetDevicesPayloadsAwaitingDeployment :many
-SELECT id, uri, format, type, value, exec FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id INNER JOIN policies_payload ON policies_payload.policy_id=group_policies.policy_id WHERE group_devices.device_id = $1 AND NOT EXISTS (SELECT 1 FROM device_cache WHERE device_cache.payload_id = policies_payload.id AND device_cache.device_id=group_devices.device_id);
+-- name: GetPoliciesInGroup :many
+SELECT policies.id, policies.name FROM group_policies INNER JOIN policies ON policies.id=group_policies.policy_id WHERE group_id = $1 AND tenant_id = $2 LIMIT $3 OFFSET $4;
 
--- name: GetDevicesDetachedPayloads :many
-SELECT id, uri, exec FROM device_cache INNER JOIN policies_payload ON policies_payload.id=device_cache.payload_id WHERE device_cache.device_id = $1 AND NOT EXISTS (SELECT policies_payload.* FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id INNER JOIN policies_payload ON policies_payload.policy_id=group_policies.policy_id WHERE group_devices.device_id = device_cache.device_id);
+-- name: AddPolicyToGroup :exec
+INSERT INTO group_policies(group_id, policy_id) VALUES ($1, $2);
 
--- name: NewDeviceCacheNode :one
-INSERT INTO device_cache(device_id, payload_id) VALUES ($1, $2) RETURNING cache_id;
+-- name: RemovePolicyFromGroup :exec
+DELETE FROM group_policies WHERE group_id = $1 AND policy_id = $2;
 
--- name: DeleteDeviceCacheNode :exec
-DELETE FROM device_cache WHERE device_id = $1 AND payload_id = $2;
+-------- Policy Actions
 
--- name: UpdateDeviceInventoryNode :exec
-INSERT INTO device_inventory(device_id, uri, format, value) VALUES ($1, $2, $3, $4); -- TODO: Update or Replace
+-- name: NewPolicy :one
+INSERT INTO policies(name, type, tenant_id) VALUES ($1, $2, $3) RETURNING id;
 
 -- name: GetPolicies :many
--- Exposed via API
-SELECT id, name FROM policies LIMIT 100;
+SELECT id, name, type, description FROM policies WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: GetPolicy :one
--- Exposed via API
-SELECT id, name, description, priority FROM policies WHERE id = $1 LIMIT 1;
+SELECT name, type, payload, description FROM policies WHERE id = $1 AND tenant_id = $2 LIMIT 1;
 
--- name: GetPoliciesPayloads :many
-SELECT * FROM policies_payload WHERE policy_id = $1;
+-- name: GetPolicyGroups :many
+SELECT groups.id, groups.name FROM groups INNER JOIN group_policies ON group_policies.group_id=groups.id WHERE group_policies.policy_id = $1;
 
--- name: Settings :one
-SELECT * FROM settings LIMIT 1;
+-- name: GetDevicesWithPolicy :many
+SELECT DISTINCT device_id FROM group_devices INNER JOIN group_policies ON group_policies.group_id=group_devices.group_id WHERE group_policies.policy_id = $1;
+
+-- name: DeletePolicy :exec
+DELETE FROM policies WHERE id = $1 AND tenant_id = $2;
+
+-------- Application Actions
+
+-- name: NewApplication :one
+INSERT INTO applications(name, tenant_id) VALUES ($1, $2) RETURNING id;
+
+-- name: GetApplications :many
+SELECT id, name, publisher FROM applications WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+
+-- name: GetApplication :one
+SELECT name, description, publisher FROM applications WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: GetApplicationTargets :many
+SELECT msi_file, store_id FROM application_target WHERE app_id = $1 AND tenant_id = $2;
+
+-- name: UpdateApplication :exec
+UPDATE applications SET name=COALESCE($3, name), description=COALESCE($4, description), publisher=COALESCE($5, publisher) WHERE id = $1 AND tenant_id=$2;
+
+-- name: DeleteApplication :exec
+DELETE FROM applications WHERE id = $1 AND tenant_id = $2;
+
+-------- Device Actions
+
+-- name: CreateDevice :one
+INSERT INTO devices(tenant_id, protocol, scope, state, udid, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id;
+
+-- name: GetDeviceForManagement :one
+SELECT id, tenant_id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did FROM devices WHERE udid = $1 LIMIT 1;
+
+-- name: GetDevices :many
+SELECT id, protocol, name, model FROM devices WHERE tenant_id = $1 LIMIT $2 OFFSET $3;
+
+-- name: GetDevice :one
+SELECT id, protocol, scope, state, name, serial_number, model_manufacturer, model, os_major, os_minor, owner, ownership, azure_did, enrolled_at, lastseen FROM devices WHERE id = $1 AND tenant_id = $2 LIMIT 1;
+
+-- name: GetDeviceGroups :many
+SELECT groups.id, groups.name FROM groups INNER JOIN group_devices ON group_devices.group_id=groups.id WHERE group_devices.device_id = $1;
+
+-- name: GetDevicePolicies :many
+SELECT DISTINCT ON (id) id, name, description, policy_id, group_devices.group_id FROM policies INNER JOIN group_policies ON group_policies.policy_id = policies.id INNER JOIN group_devices ON group_devices.group_id=group_policies.group_id WHERE group_devices.device_id = $1;
+
+-------- Certificates
 
 -- name: GetRawCert :one
 SELECT cert, key FROM certificates WHERE id = $1 LIMIT 1;
 
 -- name: CreateRawCert :exec
 INSERT INTO certificates(id, cert, key) VALUES ($1, $2, $3);
+
+-------- Android For Work Enrollment State
+
+-- name: AFWGetAndRemoveState :one
+DELETE FROM android_for_work_enrollment_state WHERE id=$1 RETURNING name;
+
+-- name: AFWCreateState :one
+INSERT INTO android_for_work_enrollment_state(name) VALUES (NULL) RETURNING id;
+
+-- name: AFWUpdateState :exec
+UPDATE android_for_work_enrollment_state SET name=$2 WHERE id=$1;
+
+-- name: AFWUpdateTenant :exec
+UPDATE tenants SET afw_enterprise_id=$2 WHERE id=$1;

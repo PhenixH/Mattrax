@@ -22,47 +22,83 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.aFWCreateStateStmt, err = db.PrepareContext(ctx, aFWCreateState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWCreateState: %w", err)
+	}
+	if q.aFWGetAndRemoveStateStmt, err = db.PrepareContext(ctx, aFWGetAndRemoveState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWGetAndRemoveState: %w", err)
+	}
+	if q.aFWUpdateStateStmt, err = db.PrepareContext(ctx, aFWUpdateState); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWUpdateState: %w", err)
+	}
+	if q.aFWUpdateTenantStmt, err = db.PrepareContext(ctx, aFWUpdateTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query AFWUpdateTenant: %w", err)
+	}
+	if q.addDeviceToGroupStmt, err = db.PrepareContext(ctx, addDeviceToGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query AddDeviceToGroup: %w", err)
+	}
+	if q.addDomainToTenantStmt, err = db.PrepareContext(ctx, addDomainToTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query AddDomainToTenant: %w", err)
+	}
+	if q.addPolicyToGroupStmt, err = db.PrepareContext(ctx, addPolicyToGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query AddPolicyToGroup: %w", err)
+	}
+	if q.createDeviceStmt, err = db.PrepareContext(ctx, createDevice); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateDevice: %w", err)
+	}
+	if q.createObjectStmt, err = db.PrepareContext(ctx, createObject); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateObject: %w", err)
+	}
 	if q.createRawCertStmt, err = db.PrepareContext(ctx, createRawCert); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateRawCert: %w", err)
 	}
-	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
-		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
+	if q.deleteApplicationStmt, err = db.PrepareContext(ctx, deleteApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteApplication: %w", err)
 	}
-	if q.deleteDeviceCacheNodeStmt, err = db.PrepareContext(ctx, deleteDeviceCacheNode); err != nil {
-		return nil, fmt.Errorf("error preparing query DeleteDeviceCacheNode: %w", err)
+	if q.deleteDomainStmt, err = db.PrepareContext(ctx, deleteDomain); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteDomain: %w", err)
 	}
-	if q.deviceCheckinStatusStmt, err = db.PrepareContext(ctx, deviceCheckinStatus); err != nil {
-		return nil, fmt.Errorf("error preparing query DeviceCheckinStatus: %w", err)
+	if q.deleteGroupStmt, err = db.PrepareContext(ctx, deleteGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteGroup: %w", err)
 	}
-	if q.deviceUserUnenrollmentStmt, err = db.PrepareContext(ctx, deviceUserUnenrollment); err != nil {
-		return nil, fmt.Errorf("error preparing query DeviceUserUnenrollment: %w", err)
+	if q.deletePolicyStmt, err = db.PrepareContext(ctx, deletePolicy); err != nil {
+		return nil, fmt.Errorf("error preparing query DeletePolicy: %w", err)
 	}
-	if q.getBasicDeviceStmt, err = db.PrepareContext(ctx, getBasicDevice); err != nil {
-		return nil, fmt.Errorf("error preparing query GetBasicDevice: %w", err)
+	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
 	}
-	if q.getBasicDeviceScopedGroupsStmt, err = db.PrepareContext(ctx, getBasicDeviceScopedGroups); err != nil {
-		return nil, fmt.Errorf("error preparing query GetBasicDeviceScopedGroups: %w", err)
+	if q.deleteUserInTenantStmt, err = db.PrepareContext(ctx, deleteUserInTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserInTenant: %w", err)
 	}
-	if q.getBasicDeviceScopedPoliciesStmt, err = db.PrepareContext(ctx, getBasicDeviceScopedPolicies); err != nil {
-		return nil, fmt.Errorf("error preparing query GetBasicDeviceScopedPolicies: %w", err)
+	if q.getApplicationStmt, err = db.PrepareContext(ctx, getApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplication: %w", err)
+	}
+	if q.getApplicationTargetsStmt, err = db.PrepareContext(ctx, getApplicationTargets); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplicationTargets: %w", err)
+	}
+	if q.getApplicationsStmt, err = db.PrepareContext(ctx, getApplications); err != nil {
+		return nil, fmt.Errorf("error preparing query GetApplications: %w", err)
 	}
 	if q.getDeviceStmt, err = db.PrepareContext(ctx, getDevice); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDevice: %w", err)
 	}
-	if q.getDeviceByUDIDStmt, err = db.PrepareContext(ctx, getDeviceByUDID); err != nil {
-		return nil, fmt.Errorf("error preparing query GetDeviceByUDID: %w", err)
+	if q.getDeviceForManagementStmt, err = db.PrepareContext(ctx, getDeviceForManagement); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDeviceForManagement: %w", err)
+	}
+	if q.getDeviceGroupsStmt, err = db.PrepareContext(ctx, getDeviceGroups); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDeviceGroups: %w", err)
+	}
+	if q.getDevicePoliciesStmt, err = db.PrepareContext(ctx, getDevicePolicies); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDevicePolicies: %w", err)
 	}
 	if q.getDevicesStmt, err = db.PrepareContext(ctx, getDevices); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDevices: %w", err)
 	}
-	if q.getDevicesDetachedPayloadsStmt, err = db.PrepareContext(ctx, getDevicesDetachedPayloads); err != nil {
-		return nil, fmt.Errorf("error preparing query GetDevicesDetachedPayloads: %w", err)
+	if q.getDevicesInGroupStmt, err = db.PrepareContext(ctx, getDevicesInGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDevicesInGroup: %w", err)
 	}
-	if q.getDevicesPayloadsStmt, err = db.PrepareContext(ctx, getDevicesPayloads); err != nil {
-		return nil, fmt.Errorf("error preparing query GetDevicesPayloads: %w", err)
-	}
-	if q.getDevicesPayloadsAwaitingDeploymentStmt, err = db.PrepareContext(ctx, getDevicesPayloadsAwaitingDeployment); err != nil {
-		return nil, fmt.Errorf("error preparing query GetDevicesPayloadsAwaitingDeployment: %w", err)
+	if q.getDevicesWithPolicyStmt, err = db.PrepareContext(ctx, getDevicesWithPolicy); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDevicesWithPolicy: %w", err)
 	}
 	if q.getGroupStmt, err = db.PrepareContext(ctx, getGroup); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGroup: %w", err)
@@ -70,97 +106,194 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getGroupsStmt, err = db.PrepareContext(ctx, getGroups); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGroups: %w", err)
 	}
+	if q.getObjectStmt, err = db.PrepareContext(ctx, getObject); err != nil {
+		return nil, fmt.Errorf("error preparing query GetObject: %w", err)
+	}
 	if q.getPoliciesStmt, err = db.PrepareContext(ctx, getPolicies); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPolicies: %w", err)
 	}
-	if q.getPoliciesPayloadsStmt, err = db.PrepareContext(ctx, getPoliciesPayloads); err != nil {
-		return nil, fmt.Errorf("error preparing query GetPoliciesPayloads: %w", err)
+	if q.getPoliciesInGroupStmt, err = db.PrepareContext(ctx, getPoliciesInGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPoliciesInGroup: %w", err)
 	}
 	if q.getPolicyStmt, err = db.PrepareContext(ctx, getPolicy); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPolicy: %w", err)
 	}
+	if q.getPolicyGroupsStmt, err = db.PrepareContext(ctx, getPolicyGroups); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPolicyGroups: %w", err)
+	}
 	if q.getRawCertStmt, err = db.PrepareContext(ctx, getRawCert); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRawCert: %w", err)
+	}
+	if q.getTenantStmt, err = db.PrepareContext(ctx, getTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTenant: %w", err)
+	}
+	if q.getTenantDomainStmt, err = db.PrepareContext(ctx, getTenantDomain); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTenantDomain: %w", err)
+	}
+	if q.getTenantDomainsStmt, err = db.PrepareContext(ctx, getTenantDomains); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTenantDomains: %w", err)
 	}
 	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
 	}
-	if q.getUserForLoginStmt, err = db.PrepareContext(ctx, getUserForLogin); err != nil {
-		return nil, fmt.Errorf("error preparing query GetUserForLogin: %w", err)
+	if q.getUserCountStmt, err = db.PrepareContext(ctx, getUserCount); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserCount: %w", err)
 	}
-	if q.getUsersStmt, err = db.PrepareContext(ctx, getUsers); err != nil {
-		return nil, fmt.Errorf("error preparing query GetUsers: %w", err)
+	if q.getUserPermissionLevelForTenantStmt, err = db.PrepareContext(ctx, getUserPermissionLevelForTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserPermissionLevelForTenant: %w", err)
 	}
-	if q.newAzureADUserStmt, err = db.PrepareContext(ctx, newAzureADUser); err != nil {
-		return nil, fmt.Errorf("error preparing query NewAzureADUser: %w", err)
+	if q.getUserSecureStmt, err = db.PrepareContext(ctx, getUserSecure); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserSecure: %w", err)
 	}
-	if q.newDeviceStmt, err = db.PrepareContext(ctx, newDevice); err != nil {
-		return nil, fmt.Errorf("error preparing query NewDevice: %w", err)
+	if q.getUserTenantsStmt, err = db.PrepareContext(ctx, getUserTenants); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTenants: %w", err)
 	}
-	if q.newDeviceCacheNodeStmt, err = db.PrepareContext(ctx, newDeviceCacheNode); err != nil {
-		return nil, fmt.Errorf("error preparing query NewDeviceCacheNode: %w", err)
+	if q.getUsersInTenantStmt, err = db.PrepareContext(ctx, getUsersInTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUsersInTenant: %w", err)
 	}
-	if q.newDeviceReplacingExistingStmt, err = db.PrepareContext(ctx, newDeviceReplacingExisting); err != nil {
-		return nil, fmt.Errorf("error preparing query NewDeviceReplacingExisting: %w", err)
+	if q.getUsersInTenantByQueryStmt, err = db.PrepareContext(ctx, getUsersInTenantByQuery); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUsersInTenantByQuery: %w", err)
 	}
-	if q.newDeviceReplacingExistingResetCacheStmt, err = db.PrepareContext(ctx, newDeviceReplacingExistingResetCache); err != nil {
-		return nil, fmt.Errorf("error preparing query NewDeviceReplacingExistingResetCache: %w", err)
+	if q.newApplicationStmt, err = db.PrepareContext(ctx, newApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query NewApplication: %w", err)
 	}
-	if q.newDeviceReplacingExistingResetInventoryStmt, err = db.PrepareContext(ctx, newDeviceReplacingExistingResetInventory); err != nil {
-		return nil, fmt.Errorf("error preparing query NewDeviceReplacingExistingResetInventory: %w", err)
+	if q.newGlobalUserStmt, err = db.PrepareContext(ctx, newGlobalUser); err != nil {
+		return nil, fmt.Errorf("error preparing query NewGlobalUser: %w", err)
 	}
-	if q.setDeviceStateStmt, err = db.PrepareContext(ctx, setDeviceState); err != nil {
-		return nil, fmt.Errorf("error preparing query SetDeviceState: %w", err)
+	if q.newGroupStmt, err = db.PrepareContext(ctx, newGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query NewGroup: %w", err)
 	}
-	if q.settingsStmt, err = db.PrepareContext(ctx, settings); err != nil {
-		return nil, fmt.Errorf("error preparing query Settings: %w", err)
+	if q.newPolicyStmt, err = db.PrepareContext(ctx, newPolicy); err != nil {
+		return nil, fmt.Errorf("error preparing query NewPolicy: %w", err)
 	}
-	if q.updateDeviceInventoryNodeStmt, err = db.PrepareContext(ctx, updateDeviceInventoryNode); err != nil {
-		return nil, fmt.Errorf("error preparing query UpdateDeviceInventoryNode: %w", err)
+	if q.newTenantStmt, err = db.PrepareContext(ctx, newTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query NewTenant: %w", err)
+	}
+	if q.newUserStmt, err = db.PrepareContext(ctx, newUser); err != nil {
+		return nil, fmt.Errorf("error preparing query NewUser: %w", err)
+	}
+	if q.newUserFromAzureADStmt, err = db.PrepareContext(ctx, newUserFromAzureAD); err != nil {
+		return nil, fmt.Errorf("error preparing query NewUserFromAzureAD: %w", err)
+	}
+	if q.removeDeviceFromGroupStmt, err = db.PrepareContext(ctx, removeDeviceFromGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query RemoveDeviceFromGroup: %w", err)
+	}
+	if q.removePolicyFromGroupStmt, err = db.PrepareContext(ctx, removePolicyFromGroup); err != nil {
+		return nil, fmt.Errorf("error preparing query RemovePolicyFromGroup: %w", err)
+	}
+	if q.removeUserFromTenantStmt, err = db.PrepareContext(ctx, removeUserFromTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query RemoveUserFromTenant: %w", err)
+	}
+	if q.scopeUserToTenantStmt, err = db.PrepareContext(ctx, scopeUserToTenant); err != nil {
+		return nil, fmt.Errorf("error preparing query ScopeUserToTenant: %w", err)
+	}
+	if q.updateApplicationStmt, err = db.PrepareContext(ctx, updateApplication); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateApplication: %w", err)
+	}
+	if q.updateDomainStmt, err = db.PrepareContext(ctx, updateDomain); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateDomain: %w", err)
+	}
+	if q.updateObjectStmt, err = db.PrepareContext(ctx, updateObject); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateObject: %w", err)
 	}
 	return &q, nil
 }
 
 func (q *Queries) Close() error {
 	var err error
+	if q.aFWCreateStateStmt != nil {
+		if cerr := q.aFWCreateStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWCreateStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWGetAndRemoveStateStmt != nil {
+		if cerr := q.aFWGetAndRemoveStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWGetAndRemoveStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWUpdateStateStmt != nil {
+		if cerr := q.aFWUpdateStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWUpdateStateStmt: %w", cerr)
+		}
+	}
+	if q.aFWUpdateTenantStmt != nil {
+		if cerr := q.aFWUpdateTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing aFWUpdateTenantStmt: %w", cerr)
+		}
+	}
+	if q.addDeviceToGroupStmt != nil {
+		if cerr := q.addDeviceToGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addDeviceToGroupStmt: %w", cerr)
+		}
+	}
+	if q.addDomainToTenantStmt != nil {
+		if cerr := q.addDomainToTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addDomainToTenantStmt: %w", cerr)
+		}
+	}
+	if q.addPolicyToGroupStmt != nil {
+		if cerr := q.addPolicyToGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addPolicyToGroupStmt: %w", cerr)
+		}
+	}
+	if q.createDeviceStmt != nil {
+		if cerr := q.createDeviceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createDeviceStmt: %w", cerr)
+		}
+	}
+	if q.createObjectStmt != nil {
+		if cerr := q.createObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createObjectStmt: %w", cerr)
+		}
+	}
 	if q.createRawCertStmt != nil {
 		if cerr := q.createRawCertStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createRawCertStmt: %w", cerr)
 		}
 	}
-	if q.createUserStmt != nil {
-		if cerr := q.createUserStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+	if q.deleteApplicationStmt != nil {
+		if cerr := q.deleteApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteApplicationStmt: %w", cerr)
 		}
 	}
-	if q.deleteDeviceCacheNodeStmt != nil {
-		if cerr := q.deleteDeviceCacheNodeStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deleteDeviceCacheNodeStmt: %w", cerr)
+	if q.deleteDomainStmt != nil {
+		if cerr := q.deleteDomainStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteDomainStmt: %w", cerr)
 		}
 	}
-	if q.deviceCheckinStatusStmt != nil {
-		if cerr := q.deviceCheckinStatusStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deviceCheckinStatusStmt: %w", cerr)
+	if q.deleteGroupStmt != nil {
+		if cerr := q.deleteGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteGroupStmt: %w", cerr)
 		}
 	}
-	if q.deviceUserUnenrollmentStmt != nil {
-		if cerr := q.deviceUserUnenrollmentStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing deviceUserUnenrollmentStmt: %w", cerr)
+	if q.deletePolicyStmt != nil {
+		if cerr := q.deletePolicyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deletePolicyStmt: %w", cerr)
 		}
 	}
-	if q.getBasicDeviceStmt != nil {
-		if cerr := q.getBasicDeviceStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getBasicDeviceStmt: %w", cerr)
+	if q.deleteUserStmt != nil {
+		if cerr := q.deleteUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserStmt: %w", cerr)
 		}
 	}
-	if q.getBasicDeviceScopedGroupsStmt != nil {
-		if cerr := q.getBasicDeviceScopedGroupsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getBasicDeviceScopedGroupsStmt: %w", cerr)
+	if q.deleteUserInTenantStmt != nil {
+		if cerr := q.deleteUserInTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserInTenantStmt: %w", cerr)
 		}
 	}
-	if q.getBasicDeviceScopedPoliciesStmt != nil {
-		if cerr := q.getBasicDeviceScopedPoliciesStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getBasicDeviceScopedPoliciesStmt: %w", cerr)
+	if q.getApplicationStmt != nil {
+		if cerr := q.getApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationStmt: %w", cerr)
+		}
+	}
+	if q.getApplicationTargetsStmt != nil {
+		if cerr := q.getApplicationTargetsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationTargetsStmt: %w", cerr)
+		}
+	}
+	if q.getApplicationsStmt != nil {
+		if cerr := q.getApplicationsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getApplicationsStmt: %w", cerr)
 		}
 	}
 	if q.getDeviceStmt != nil {
@@ -168,9 +301,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getDeviceStmt: %w", cerr)
 		}
 	}
-	if q.getDeviceByUDIDStmt != nil {
-		if cerr := q.getDeviceByUDIDStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getDeviceByUDIDStmt: %w", cerr)
+	if q.getDeviceForManagementStmt != nil {
+		if cerr := q.getDeviceForManagementStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDeviceForManagementStmt: %w", cerr)
+		}
+	}
+	if q.getDeviceGroupsStmt != nil {
+		if cerr := q.getDeviceGroupsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDeviceGroupsStmt: %w", cerr)
+		}
+	}
+	if q.getDevicePoliciesStmt != nil {
+		if cerr := q.getDevicePoliciesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDevicePoliciesStmt: %w", cerr)
 		}
 	}
 	if q.getDevicesStmt != nil {
@@ -178,19 +321,14 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getDevicesStmt: %w", cerr)
 		}
 	}
-	if q.getDevicesDetachedPayloadsStmt != nil {
-		if cerr := q.getDevicesDetachedPayloadsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getDevicesDetachedPayloadsStmt: %w", cerr)
+	if q.getDevicesInGroupStmt != nil {
+		if cerr := q.getDevicesInGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDevicesInGroupStmt: %w", cerr)
 		}
 	}
-	if q.getDevicesPayloadsStmt != nil {
-		if cerr := q.getDevicesPayloadsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getDevicesPayloadsStmt: %w", cerr)
-		}
-	}
-	if q.getDevicesPayloadsAwaitingDeploymentStmt != nil {
-		if cerr := q.getDevicesPayloadsAwaitingDeploymentStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getDevicesPayloadsAwaitingDeploymentStmt: %w", cerr)
+	if q.getDevicesWithPolicyStmt != nil {
+		if cerr := q.getDevicesWithPolicyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDevicesWithPolicyStmt: %w", cerr)
 		}
 	}
 	if q.getGroupStmt != nil {
@@ -203,14 +341,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getGroupsStmt: %w", cerr)
 		}
 	}
+	if q.getObjectStmt != nil {
+		if cerr := q.getObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getObjectStmt: %w", cerr)
+		}
+	}
 	if q.getPoliciesStmt != nil {
 		if cerr := q.getPoliciesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPoliciesStmt: %w", cerr)
 		}
 	}
-	if q.getPoliciesPayloadsStmt != nil {
-		if cerr := q.getPoliciesPayloadsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getPoliciesPayloadsStmt: %w", cerr)
+	if q.getPoliciesInGroupStmt != nil {
+		if cerr := q.getPoliciesInGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPoliciesInGroupStmt: %w", cerr)
 		}
 	}
 	if q.getPolicyStmt != nil {
@@ -218,9 +361,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getPolicyStmt: %w", cerr)
 		}
 	}
+	if q.getPolicyGroupsStmt != nil {
+		if cerr := q.getPolicyGroupsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPolicyGroupsStmt: %w", cerr)
+		}
+	}
 	if q.getRawCertStmt != nil {
 		if cerr := q.getRawCertStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRawCertStmt: %w", cerr)
+		}
+	}
+	if q.getTenantStmt != nil {
+		if cerr := q.getTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTenantStmt: %w", cerr)
+		}
+	}
+	if q.getTenantDomainStmt != nil {
+		if cerr := q.getTenantDomainStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTenantDomainStmt: %w", cerr)
+		}
+	}
+	if q.getTenantDomainsStmt != nil {
+		if cerr := q.getTenantDomainsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTenantDomainsStmt: %w", cerr)
 		}
 	}
 	if q.getUserStmt != nil {
@@ -228,59 +391,104 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUserStmt: %w", cerr)
 		}
 	}
-	if q.getUserForLoginStmt != nil {
-		if cerr := q.getUserForLoginStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getUserForLoginStmt: %w", cerr)
+	if q.getUserCountStmt != nil {
+		if cerr := q.getUserCountStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserCountStmt: %w", cerr)
 		}
 	}
-	if q.getUsersStmt != nil {
-		if cerr := q.getUsersStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getUsersStmt: %w", cerr)
+	if q.getUserPermissionLevelForTenantStmt != nil {
+		if cerr := q.getUserPermissionLevelForTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserPermissionLevelForTenantStmt: %w", cerr)
 		}
 	}
-	if q.newAzureADUserStmt != nil {
-		if cerr := q.newAzureADUserStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newAzureADUserStmt: %w", cerr)
+	if q.getUserSecureStmt != nil {
+		if cerr := q.getUserSecureStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserSecureStmt: %w", cerr)
 		}
 	}
-	if q.newDeviceStmt != nil {
-		if cerr := q.newDeviceStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newDeviceStmt: %w", cerr)
+	if q.getUserTenantsStmt != nil {
+		if cerr := q.getUserTenantsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTenantsStmt: %w", cerr)
 		}
 	}
-	if q.newDeviceCacheNodeStmt != nil {
-		if cerr := q.newDeviceCacheNodeStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newDeviceCacheNodeStmt: %w", cerr)
+	if q.getUsersInTenantStmt != nil {
+		if cerr := q.getUsersInTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUsersInTenantStmt: %w", cerr)
 		}
 	}
-	if q.newDeviceReplacingExistingStmt != nil {
-		if cerr := q.newDeviceReplacingExistingStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newDeviceReplacingExistingStmt: %w", cerr)
+	if q.getUsersInTenantByQueryStmt != nil {
+		if cerr := q.getUsersInTenantByQueryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUsersInTenantByQueryStmt: %w", cerr)
 		}
 	}
-	if q.newDeviceReplacingExistingResetCacheStmt != nil {
-		if cerr := q.newDeviceReplacingExistingResetCacheStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newDeviceReplacingExistingResetCacheStmt: %w", cerr)
+	if q.newApplicationStmt != nil {
+		if cerr := q.newApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newApplicationStmt: %w", cerr)
 		}
 	}
-	if q.newDeviceReplacingExistingResetInventoryStmt != nil {
-		if cerr := q.newDeviceReplacingExistingResetInventoryStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing newDeviceReplacingExistingResetInventoryStmt: %w", cerr)
+	if q.newGlobalUserStmt != nil {
+		if cerr := q.newGlobalUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newGlobalUserStmt: %w", cerr)
 		}
 	}
-	if q.setDeviceStateStmt != nil {
-		if cerr := q.setDeviceStateStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing setDeviceStateStmt: %w", cerr)
+	if q.newGroupStmt != nil {
+		if cerr := q.newGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newGroupStmt: %w", cerr)
 		}
 	}
-	if q.settingsStmt != nil {
-		if cerr := q.settingsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing settingsStmt: %w", cerr)
+	if q.newPolicyStmt != nil {
+		if cerr := q.newPolicyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newPolicyStmt: %w", cerr)
 		}
 	}
-	if q.updateDeviceInventoryNodeStmt != nil {
-		if cerr := q.updateDeviceInventoryNodeStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing updateDeviceInventoryNodeStmt: %w", cerr)
+	if q.newTenantStmt != nil {
+		if cerr := q.newTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newTenantStmt: %w", cerr)
+		}
+	}
+	if q.newUserStmt != nil {
+		if cerr := q.newUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newUserStmt: %w", cerr)
+		}
+	}
+	if q.newUserFromAzureADStmt != nil {
+		if cerr := q.newUserFromAzureADStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing newUserFromAzureADStmt: %w", cerr)
+		}
+	}
+	if q.removeDeviceFromGroupStmt != nil {
+		if cerr := q.removeDeviceFromGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing removeDeviceFromGroupStmt: %w", cerr)
+		}
+	}
+	if q.removePolicyFromGroupStmt != nil {
+		if cerr := q.removePolicyFromGroupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing removePolicyFromGroupStmt: %w", cerr)
+		}
+	}
+	if q.removeUserFromTenantStmt != nil {
+		if cerr := q.removeUserFromTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing removeUserFromTenantStmt: %w", cerr)
+		}
+	}
+	if q.scopeUserToTenantStmt != nil {
+		if cerr := q.scopeUserToTenantStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing scopeUserToTenantStmt: %w", cerr)
+		}
+	}
+	if q.updateApplicationStmt != nil {
+		if cerr := q.updateApplicationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateApplicationStmt: %w", cerr)
+		}
+	}
+	if q.updateDomainStmt != nil {
+		if cerr := q.updateDomainStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateDomainStmt: %w", cerr)
+		}
+	}
+	if q.updateObjectStmt != nil {
+		if cerr := q.updateObjectStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateObjectStmt: %w", cerr)
 		}
 	}
 	return err
@@ -320,77 +528,129 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                                           DBTX
-	tx                                           *sql.Tx
-	createRawCertStmt                            *sql.Stmt
-	createUserStmt                               *sql.Stmt
-	deleteDeviceCacheNodeStmt                    *sql.Stmt
-	deviceCheckinStatusStmt                      *sql.Stmt
-	deviceUserUnenrollmentStmt                   *sql.Stmt
-	getBasicDeviceStmt                           *sql.Stmt
-	getBasicDeviceScopedGroupsStmt               *sql.Stmt
-	getBasicDeviceScopedPoliciesStmt             *sql.Stmt
-	getDeviceStmt                                *sql.Stmt
-	getDeviceByUDIDStmt                          *sql.Stmt
-	getDevicesStmt                               *sql.Stmt
-	getDevicesDetachedPayloadsStmt               *sql.Stmt
-	getDevicesPayloadsStmt                       *sql.Stmt
-	getDevicesPayloadsAwaitingDeploymentStmt     *sql.Stmt
-	getGroupStmt                                 *sql.Stmt
-	getGroupsStmt                                *sql.Stmt
-	getPoliciesStmt                              *sql.Stmt
-	getPoliciesPayloadsStmt                      *sql.Stmt
-	getPolicyStmt                                *sql.Stmt
-	getRawCertStmt                               *sql.Stmt
-	getUserStmt                                  *sql.Stmt
-	getUserForLoginStmt                          *sql.Stmt
-	getUsersStmt                                 *sql.Stmt
-	newAzureADUserStmt                           *sql.Stmt
-	newDeviceStmt                                *sql.Stmt
-	newDeviceCacheNodeStmt                       *sql.Stmt
-	newDeviceReplacingExistingStmt               *sql.Stmt
-	newDeviceReplacingExistingResetCacheStmt     *sql.Stmt
-	newDeviceReplacingExistingResetInventoryStmt *sql.Stmt
-	setDeviceStateStmt                           *sql.Stmt
-	settingsStmt                                 *sql.Stmt
-	updateDeviceInventoryNodeStmt                *sql.Stmt
+	db                                  DBTX
+	tx                                  *sql.Tx
+	aFWCreateStateStmt                  *sql.Stmt
+	aFWGetAndRemoveStateStmt            *sql.Stmt
+	aFWUpdateStateStmt                  *sql.Stmt
+	aFWUpdateTenantStmt                 *sql.Stmt
+	addDeviceToGroupStmt                *sql.Stmt
+	addDomainToTenantStmt               *sql.Stmt
+	addPolicyToGroupStmt                *sql.Stmt
+	createDeviceStmt                    *sql.Stmt
+	createObjectStmt                    *sql.Stmt
+	createRawCertStmt                   *sql.Stmt
+	deleteApplicationStmt               *sql.Stmt
+	deleteDomainStmt                    *sql.Stmt
+	deleteGroupStmt                     *sql.Stmt
+	deletePolicyStmt                    *sql.Stmt
+	deleteUserStmt                      *sql.Stmt
+	deleteUserInTenantStmt              *sql.Stmt
+	getApplicationStmt                  *sql.Stmt
+	getApplicationTargetsStmt           *sql.Stmt
+	getApplicationsStmt                 *sql.Stmt
+	getDeviceStmt                       *sql.Stmt
+	getDeviceForManagementStmt          *sql.Stmt
+	getDeviceGroupsStmt                 *sql.Stmt
+	getDevicePoliciesStmt               *sql.Stmt
+	getDevicesStmt                      *sql.Stmt
+	getDevicesInGroupStmt               *sql.Stmt
+	getDevicesWithPolicyStmt            *sql.Stmt
+	getGroupStmt                        *sql.Stmt
+	getGroupsStmt                       *sql.Stmt
+	getObjectStmt                       *sql.Stmt
+	getPoliciesStmt                     *sql.Stmt
+	getPoliciesInGroupStmt              *sql.Stmt
+	getPolicyStmt                       *sql.Stmt
+	getPolicyGroupsStmt                 *sql.Stmt
+	getRawCertStmt                      *sql.Stmt
+	getTenantStmt                       *sql.Stmt
+	getTenantDomainStmt                 *sql.Stmt
+	getTenantDomainsStmt                *sql.Stmt
+	getUserStmt                         *sql.Stmt
+	getUserCountStmt                    *sql.Stmt
+	getUserPermissionLevelForTenantStmt *sql.Stmt
+	getUserSecureStmt                   *sql.Stmt
+	getUserTenantsStmt                  *sql.Stmt
+	getUsersInTenantStmt                *sql.Stmt
+	getUsersInTenantByQueryStmt         *sql.Stmt
+	newApplicationStmt                  *sql.Stmt
+	newGlobalUserStmt                   *sql.Stmt
+	newGroupStmt                        *sql.Stmt
+	newPolicyStmt                       *sql.Stmt
+	newTenantStmt                       *sql.Stmt
+	newUserStmt                         *sql.Stmt
+	newUserFromAzureADStmt              *sql.Stmt
+	removeDeviceFromGroupStmt           *sql.Stmt
+	removePolicyFromGroupStmt           *sql.Stmt
+	removeUserFromTenantStmt            *sql.Stmt
+	scopeUserToTenantStmt               *sql.Stmt
+	updateApplicationStmt               *sql.Stmt
+	updateDomainStmt                    *sql.Stmt
+	updateObjectStmt                    *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                                       tx,
-		tx:                                       tx,
-		createRawCertStmt:                        q.createRawCertStmt,
-		createUserStmt:                           q.createUserStmt,
-		deleteDeviceCacheNodeStmt:                q.deleteDeviceCacheNodeStmt,
-		deviceCheckinStatusStmt:                  q.deviceCheckinStatusStmt,
-		deviceUserUnenrollmentStmt:               q.deviceUserUnenrollmentStmt,
-		getBasicDeviceStmt:                       q.getBasicDeviceStmt,
-		getBasicDeviceScopedGroupsStmt:           q.getBasicDeviceScopedGroupsStmt,
-		getBasicDeviceScopedPoliciesStmt:         q.getBasicDeviceScopedPoliciesStmt,
-		getDeviceStmt:                            q.getDeviceStmt,
-		getDeviceByUDIDStmt:                      q.getDeviceByUDIDStmt,
-		getDevicesStmt:                           q.getDevicesStmt,
-		getDevicesDetachedPayloadsStmt:           q.getDevicesDetachedPayloadsStmt,
-		getDevicesPayloadsStmt:                   q.getDevicesPayloadsStmt,
-		getDevicesPayloadsAwaitingDeploymentStmt: q.getDevicesPayloadsAwaitingDeploymentStmt,
-		getGroupStmt:                             q.getGroupStmt,
-		getGroupsStmt:                            q.getGroupsStmt,
-		getPoliciesStmt:                          q.getPoliciesStmt,
-		getPoliciesPayloadsStmt:                  q.getPoliciesPayloadsStmt,
-		getPolicyStmt:                            q.getPolicyStmt,
-		getRawCertStmt:                           q.getRawCertStmt,
-		getUserStmt:                              q.getUserStmt,
-		getUserForLoginStmt:                      q.getUserForLoginStmt,
-		getUsersStmt:                             q.getUsersStmt,
-		newAzureADUserStmt:                       q.newAzureADUserStmt,
-		newDeviceStmt:                            q.newDeviceStmt,
-		newDeviceCacheNodeStmt:                   q.newDeviceCacheNodeStmt,
-		newDeviceReplacingExistingStmt:           q.newDeviceReplacingExistingStmt,
-		newDeviceReplacingExistingResetCacheStmt: q.newDeviceReplacingExistingResetCacheStmt,
-		newDeviceReplacingExistingResetInventoryStmt: q.newDeviceReplacingExistingResetInventoryStmt,
-		setDeviceStateStmt:                           q.setDeviceStateStmt,
-		settingsStmt:                                 q.settingsStmt,
-		updateDeviceInventoryNodeStmt:                q.updateDeviceInventoryNodeStmt,
+		db:                                  tx,
+		tx:                                  tx,
+		aFWCreateStateStmt:                  q.aFWCreateStateStmt,
+		aFWGetAndRemoveStateStmt:            q.aFWGetAndRemoveStateStmt,
+		aFWUpdateStateStmt:                  q.aFWUpdateStateStmt,
+		aFWUpdateTenantStmt:                 q.aFWUpdateTenantStmt,
+		addDeviceToGroupStmt:                q.addDeviceToGroupStmt,
+		addDomainToTenantStmt:               q.addDomainToTenantStmt,
+		addPolicyToGroupStmt:                q.addPolicyToGroupStmt,
+		createDeviceStmt:                    q.createDeviceStmt,
+		createObjectStmt:                    q.createObjectStmt,
+		createRawCertStmt:                   q.createRawCertStmt,
+		deleteApplicationStmt:               q.deleteApplicationStmt,
+		deleteDomainStmt:                    q.deleteDomainStmt,
+		deleteGroupStmt:                     q.deleteGroupStmt,
+		deletePolicyStmt:                    q.deletePolicyStmt,
+		deleteUserStmt:                      q.deleteUserStmt,
+		deleteUserInTenantStmt:              q.deleteUserInTenantStmt,
+		getApplicationStmt:                  q.getApplicationStmt,
+		getApplicationTargetsStmt:           q.getApplicationTargetsStmt,
+		getApplicationsStmt:                 q.getApplicationsStmt,
+		getDeviceStmt:                       q.getDeviceStmt,
+		getDeviceForManagementStmt:          q.getDeviceForManagementStmt,
+		getDeviceGroupsStmt:                 q.getDeviceGroupsStmt,
+		getDevicePoliciesStmt:               q.getDevicePoliciesStmt,
+		getDevicesStmt:                      q.getDevicesStmt,
+		getDevicesInGroupStmt:               q.getDevicesInGroupStmt,
+		getDevicesWithPolicyStmt:            q.getDevicesWithPolicyStmt,
+		getGroupStmt:                        q.getGroupStmt,
+		getGroupsStmt:                       q.getGroupsStmt,
+		getObjectStmt:                       q.getObjectStmt,
+		getPoliciesStmt:                     q.getPoliciesStmt,
+		getPoliciesInGroupStmt:              q.getPoliciesInGroupStmt,
+		getPolicyStmt:                       q.getPolicyStmt,
+		getPolicyGroupsStmt:                 q.getPolicyGroupsStmt,
+		getRawCertStmt:                      q.getRawCertStmt,
+		getTenantStmt:                       q.getTenantStmt,
+		getTenantDomainStmt:                 q.getTenantDomainStmt,
+		getTenantDomainsStmt:                q.getTenantDomainsStmt,
+		getUserStmt:                         q.getUserStmt,
+		getUserCountStmt:                    q.getUserCountStmt,
+		getUserPermissionLevelForTenantStmt: q.getUserPermissionLevelForTenantStmt,
+		getUserSecureStmt:                   q.getUserSecureStmt,
+		getUserTenantsStmt:                  q.getUserTenantsStmt,
+		getUsersInTenantStmt:                q.getUsersInTenantStmt,
+		getUsersInTenantByQueryStmt:         q.getUsersInTenantByQueryStmt,
+		newApplicationStmt:                  q.newApplicationStmt,
+		newGlobalUserStmt:                   q.newGlobalUserStmt,
+		newGroupStmt:                        q.newGroupStmt,
+		newPolicyStmt:                       q.newPolicyStmt,
+		newTenantStmt:                       q.newTenantStmt,
+		newUserStmt:                         q.newUserStmt,
+		newUserFromAzureADStmt:              q.newUserFromAzureADStmt,
+		removeDeviceFromGroupStmt:           q.removeDeviceFromGroupStmt,
+		removePolicyFromGroupStmt:           q.removePolicyFromGroupStmt,
+		removeUserFromTenantStmt:            q.removeUserFromTenantStmt,
+		scopeUserToTenantStmt:               q.scopeUserToTenantStmt,
+		updateApplicationStmt:               q.updateApplicationStmt,
+		updateDomainStmt:                    q.updateDomainStmt,
+		updateObjectStmt:                    q.updateObjectStmt,
 	}
 }

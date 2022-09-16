@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <h1>MDM Enrollment</h1>
+
+    <form onsubmit="loginSubmit()">
+        <label for="upn">User Principal Name:</label><br>
+        <input type="email" id="upn" name="upn" placeholder="chris@mattrax.app" value="chris@mattrax.app" /><br />
+        <label for="password">Password:</label><br />
+        <input type="password" id="password" name="password" placeholder="password" /><br />
+        <input type="submit" />
+    </form>
+
+    <script>
+        function loginSubmit(e) {
+            event.preventDefault();
+            window.login(event.target[0].value, event.target[1].value);
+        }
+    </script>
+</body>
+
+</html>

@@ -22,7 +22,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .table {
   width: 100%;
   border: 1px solid #dee2e6;
@@ -49,10 +49,6 @@ export default {
 
 .table td {
   border-bottom: 2px solid #565458;
-}
-
-.table tr:hover {
-  background-color: #aaaaaa;
 }
 
 .table td a {

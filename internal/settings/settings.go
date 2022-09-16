@@ -1,20 +1,22 @@
 package settings
 
 import (
-	"context"
 	"sync"
 
 	"github.com/mattrax/Mattrax/internal/db"
 )
 
+type Settings struct {
+}
+
 // Service allow safely retrieving and setting of server settings
 type Service struct {
-	settings     db.Setting
+	settings     Settings
 	settingsLock sync.RWMutex
 }
 
 // Get safely returns the servers settings
-func (s *Service) Get() db.Setting {
+func (s *Service) Get() Settings {
 	s.settingsLock.RLock()
 	var settings = s.settings
 	s.settingsLock.RUnlock()
@@ -23,13 +25,13 @@ func (s *Service) Get() db.Setting {
 
 // New initialises a new settings service
 func New(q *db.Queries) (*Service, error) {
-	settings, err := q.Settings(context.Background())
-	if err != nil {
-		return nil, err
-	}
+	// settings, err := q.Settings(context.Background())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if settings.TenantName == "" {
-		settings.TenantName = "Mattrax"
+	var settings = Settings{
+		// TenantName: "Mattrax"
 	}
 
 	return &Service{

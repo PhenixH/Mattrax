@@ -1,20 +1,26 @@
 <template>
   <div v-if="loading" class="loading">Loading Group...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <GridIcon view-box="0 0 8 8" height="33" width="33" />{{ group.name }}
-        </h1>
-      </div>
-    </div>
-
-    <!-- <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/groups">Groups</NuxtLink></li>
+      </ul>
+      <h1>{{ group.name }}</h1>
+    </PageHead>
+    <PageNav>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace('/groups/' + this.$route.params.id, '') ==
+            '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-    </div> -->
-    <NuxtChild />
+    </PageNav>
+    <NuxtChild ref="body" :group="group" />
   </div>
 </template>
 
@@ -30,6 +36,7 @@ export default Vue.extend({
     }
   },
   created() {
+    this.$store.commit('dashboard/setDeletable', true)
     this.$store
       .dispatch('groups/getByID', this.$route.params.id)
       .then((group) => {
@@ -42,8 +49,12 @@ export default Vue.extend({
     navigate(pathSuffix: string) {
       this.$router.push('/groups/' + this.$route.params.id + pathSuffix)
     },
+    async delete(): Promise<string> {
+      await this.$store.dispatch('groups/deleteGroup', this.$route.params.id)
+      return '/groups'
+    },
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>

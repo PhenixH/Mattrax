@@ -30,16 +30,15 @@ type Body struct {
 // A Command is an instruction or outcome from a node on the device's management tree
 type Command struct {
 	XMLName xml.Name
-	CmdID   string  `xml:",omitempty"`
-	MsgRef  string  `xml:",omitempty"`
-	CmdRef  string  `xml:",omitempty"`
-	Cmd     string  `xml:",omitempty"`
-	Target  *LocURI `xml:"Target,omitempty"`
-	Source  *LocURI `xml:"Source,omitempty"`
-	Meta    *Meta   `xml:",omitempty"`
-	Data    string  `xml:",omitempty"`
-
-	Body []Command `xml:",any"`
+	CmdID   string    `xml:",omitempty"`
+	MsgRef  string    `xml:",omitempty"`
+	CmdRef  string    `xml:",omitempty"`
+	Cmd     string    `xml:",omitempty"`
+	Target  *LocURI   `xml:"Target,omitempty"`
+	Source  *LocURI   `xml:"Source,omitempty"`
+	Meta    *Meta     `xml:",omitempty"`
+	Body    []Command `xml:",any"`
+	Data    string    `xml:",omitempty"`
 }
 
 // LocURI contains a location on the management tree

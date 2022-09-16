@@ -4,11 +4,31 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/mattrax/Mattrax/pkg/null"
 )
+
+type DeviceOwnership string
+
+const (
+	DeviceOwnershipCorporate DeviceOwnership = "corporate"
+	DeviceOwnershipPersonal  DeviceOwnership = "personal"
+)
+
+func (e *DeviceOwnership) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceOwnership(s)
+	case string:
+		*e = DeviceOwnership(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceOwnership: %T", src)
+	}
+	return nil
+}
 
 type DeviceState string
 
@@ -16,6 +36,7 @@ const (
 	DeviceStateDeploying      DeviceState = "deploying"
 	DeviceStateManaged        DeviceState = "managed"
 	DeviceStateUserUnenrolled DeviceState = "user_unenrolled"
+	DeviceStateDisabled       DeviceState = "disabled"
 	DeviceStateMissing        DeviceState = "missing"
 )
 
@@ -31,22 +52,63 @@ func (e *DeviceState) Scan(src interface{}) error {
 	return nil
 }
 
-type EnrollmentType string
+type ManagementProtocol string
 
 const (
-	EnrollmentTypeUnenrolled EnrollmentType = "Unenrolled"
-	EnrollmentTypeUser       EnrollmentType = "User"
-	EnrollmentTypeDevice     EnrollmentType = "Device"
+	ManagementProtocolWindows ManagementProtocol = "windows"
+	ManagementProtocolAgent   ManagementProtocol = "agent"
+	ManagementProtocolApple   ManagementProtocol = "apple"
+	ManagementProtocolAndroid ManagementProtocol = "android"
 )
 
-func (e *EnrollmentType) Scan(src interface{}) error {
+func (e *ManagementProtocol) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EnrollmentType(s)
+		*e = ManagementProtocol(s)
 	case string:
-		*e = EnrollmentType(s)
+		*e = ManagementProtocol(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EnrollmentType: %T", src)
+		return fmt.Errorf("unsupported scan type for ManagementProtocol: %T", src)
+	}
+	return nil
+}
+
+type ManagementScope string
+
+const (
+	ManagementScopeDevice     ManagementScope = "device"
+	ManagementScopeAfwProfile ManagementScope = "afw_profile"
+	ManagementScopeUser       ManagementScope = "user"
+)
+
+func (e *ManagementScope) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ManagementScope(s)
+	case string:
+		*e = ManagementScope(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ManagementScope: %T", src)
+	}
+	return nil
+}
+
+type Operation string
+
+const (
+	OperationINSERT Operation = "INSERT"
+	OperationUPDATE Operation = "UPDATE"
+	OperationDELETE Operation = "DELETE"
+)
+
+func (e *Operation) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Operation(s)
+	case string:
+		*e = Operation(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Operation: %T", src)
 	}
 	return nil
 }
@@ -70,6 +132,27 @@ func (e *UserPermissionLevel) Scan(src interface{}) error {
 	return nil
 }
 
+type AndroidForWorkEnrollmentState struct {
+	ID        string      `json:"id"`
+	Name      null.String `json:"name"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type Application struct {
+	ID          string      `json:"id"`
+	TenantID    string      `json:"tenant_id"`
+	Name        null.String `json:"name"`
+	Description null.String `json:"description"`
+	Publisher   null.String `json:"publisher"`
+}
+
+type ApplicationTarget struct {
+	AppID    string      `json:"app_id"`
+	TenantID string      `json:"tenant_id"`
+	MsiFile  null.String `json:"msi_file"`
+	StoreID  null.String `json:"store_id"`
+}
+
 type Certificate struct {
 	ID   string `json:"id"`
 	Cert []byte `json:"cert"`
@@ -77,89 +160,99 @@ type Certificate struct {
 }
 
 type Device struct {
-	ID               int32          `json:"id"`
-	Udid             string         `json:"udid"`
-	State            DeviceState    `json:"state"`
-	EnrollmentType   EnrollmentType `json:"enrollment_type"`
-	Name             string         `json:"name"`
-	Description      null.String    `json:"description"`
-	Model            string         `json:"model"`
-	HwDevID          string         `json:"hw_dev_id"`
-	OperatingSystem  string         `json:"operating_system"`
-	AzureDid         null.String    `json:"azure_did"`
-	NodecacheVersion string         `json:"nodecache_version"`
-	Lastseen         time.Time      `json:"lastseen"`
-	LastseenStatus   int32          `json:"lastseen_status"`
-	EnrolledAt       time.Time      `json:"enrolled_at"`
-	EnrolledBy       null.String    `json:"enrolled_by"`
+	ID                string             `json:"id"`
+	TenantID          string             `json:"tenant_id"`
+	Protocol          ManagementProtocol `json:"protocol"`
+	Scope             ManagementScope    `json:"scope"`
+	State             DeviceState        `json:"state"`
+	Udid              string             `json:"udid"`
+	Name              string             `json:"name"`
+	Description       null.String        `json:"description"`
+	SerialNumber      null.String        `json:"serial_number"`
+	ModelManufacturer null.String        `json:"model_manufacturer"`
+	Model             null.String        `json:"model"`
+	OsMajor           null.String        `json:"os_major"`
+	OsMinor           null.String        `json:"os_minor"`
+	Owner             null.String        `json:"owner"`
+	Ownership         DeviceOwnership    `json:"ownership"`
+	AzureDid          null.String        `json:"azure_did"`
+	Lastseen          sql.NullTime       `json:"lastseen"`
+	EnrolledAt        time.Time          `json:"enrolled_at"`
 }
 
-type DeviceCache struct {
-	DeviceID    int32         `json:"device_id"`
-	PayloadID   sql.NullInt32 `json:"payload_id"`
-	InventoryID sql.NullInt32 `json:"inventory_id"`
-	CacheID     int32         `json:"cache_id"`
-}
-
-type DeviceInventory struct {
-	ID       int32  `json:"id"`
-	DeviceID int32  `json:"device_id"`
-	Uri      string `json:"uri"`
-	Format   string `json:"format"`
-	Value    string `json:"value"`
-}
-
-type DeviceSessionCache struct {
+type EventLog struct {
+	EventID       int32           `json:"event_id"`
+	TableName     string          `json:"table_name"`
+	ResourceID    null.String     `json:"resource_id"`
+	TenantID      null.String     `json:"tenant_id"`
+	UserUpn       null.String     `json:"user_upn"`
+	Time          time.Time       `json:"time"`
+	Operation     Operation       `json:"operation"`
+	ExistingValue json.RawMessage `json:"existing_value"`
 }
 
 type Group struct {
-	ID          int32  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Priority    int16  `json:"priority"`
+	ID          string      `json:"id"`
+	TenantID    string      `json:"tenant_id"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 type GroupDevice struct {
-	GroupID  int32 `json:"group_id"`
-	DeviceID int32 `json:"device_id"`
+	GroupID  string `json:"group_id"`
+	DeviceID string `json:"device_id"`
 }
 
 type GroupPolicy struct {
-	GroupID  sql.NullInt32 `json:"group_id"`
-	PolicyID sql.NullInt32 `json:"policy_id"`
+	GroupID  string `json:"group_id"`
+	PolicyID string `json:"policy_id"`
 }
 
-type PoliciesPayload struct {
-	ID       int32         `json:"id"`
-	PolicyID sql.NullInt32 `json:"policy_id"`
-	Uri      string        `json:"uri"`
-	Format   string        `json:"format"`
-	Type     string        `json:"type"`
-	Value    string        `json:"value"`
-	Exec     bool          `json:"exec"`
+type Object struct {
+	ID       string      `json:"id"`
+	TenantID string      `json:"tenant_id"`
+	Filename null.String `json:"filename"`
+	Data     []byte      `json:"data"`
 }
 
 type Policy struct {
-	ID          int32  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Priority    int16  `json:"priority"`
+	ID          string          `json:"id"`
+	TenantID    string          `json:"tenant_id"`
+	Name        string          `json:"name"`
+	Type        string          `json:"type"`
+	Payload     json.RawMessage `json:"payload"`
+	Description null.String     `json:"description"`
 }
 
-type Setting struct {
-	TenantName        string `json:"tenant_name"`
-	TenantEmail       string `json:"tenant_email"`
-	TenantWebsite     string `json:"tenant_website"`
-	TenantPhone       string `json:"tenant_phone"`
-	TenantAzureid     string `json:"tenant_azureid"`
-	DisableEnrollment bool   `json:"disable_enrollment"`
+type Tenant struct {
+	ID              string      `json:"id"`
+	DisplayName     string      `json:"display_name"`
+	PrimaryDomain   string      `json:"primary_domain"`
+	Email           null.String `json:"email"`
+	Phone           null.String `json:"phone"`
+	Description     null.String `json:"description"`
+	AfwEnterpriseID null.String `json:"afw_enterprise_id"`
+}
+
+type TenantDomain struct {
+	TenantID    string `json:"tenant_id"`
+	Domain      string `json:"domain"`
+	LinkingCode string `json:"linking_code"`
+	Verified    bool   `json:"verified"`
+}
+
+type TenantUser struct {
+	UserUpn         string              `json:"user_upn"`
+	TenantID        string              `json:"tenant_id"`
+	PermissionLevel UserPermissionLevel `json:"permission_level"`
 }
 
 type User struct {
-	Upn             string              `json:"upn"`
-	Fullname        string              `json:"fullname"`
-	Password        null.String         `json:"password"`
-	MfaToken        null.String         `json:"mfa_token"`
-	AzureadOid      null.String         `json:"azuread_oid"`
-	PermissionLevel UserPermissionLevel `json:"permission_level"`
+	UPN        string      `json:"upn"`
+	Fullname   string      `json:"fullname"`
+	Disabled   bool        `json:"disabled"`
+	Password   null.String `json:"password"`
+	MfaToken   null.String `json:"mfa_token"`
+	AzureadOid null.String `json:"azuread_oid"`
+	TenantID   null.String `json:"tenant_id"`
 }

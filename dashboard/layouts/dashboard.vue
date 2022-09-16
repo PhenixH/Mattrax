@@ -1,13 +1,46 @@
 <template>
   <div>
-    <Header />
-    <Sidebar />
-    <main>
+    <Header :is-menu-active="menuActive" />
+    <Sidebar :is-menu-active="menuActive" />
+    <main :class="{ icons: !$store.state.dashboard.menuActive }">
       <div v-if="$store.state.dashboard.error">
         <h1>An Error Occured</h1>
         <p>{{ $store.state.dashboard.error }}</p>
+        <p v-if="$store.state.dashboard.errorTraceID !== null">
+          Trace ID: {{ $store.state.dashboard.errorTraceID }}
+        </p>
       </div>
-      <Nuxt v-else />
+      <div v-else>
+        <Nuxt ref="body" />
+        <div
+          v-if="$store.state.dashboard.editting !== null"
+          class="page-footer"
+        >
+          <button
+            @click="
+              $store.state.dashboard.editting
+                ? $refs.body.$children[0].savebtn === undefined
+                  ? $refs.body.$children[0].$refs.body.savebtn()
+                  : $refs.body.$children[0].savebtn()
+                : $store.commit('dashboard/setEditting', true)
+            "
+          >
+            {{ $store.state.dashboard.editting ? 'Save' : 'Edit' }}
+          </button>
+          <button
+            v-if="$store.state.dashboard.deletable"
+            :disabled="!$store.state.dashboard.editting"
+            class="red"
+            @click="
+              $refs.body.$children[0].deletebtn === undefined
+                ? $refs.body.$children[0].$refs.body.deletebtn()
+                : $refs.body.$children[0].deletebtn()
+            "
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -16,7 +49,12 @@
 import Vue from 'vue'
 
 export default Vue.extend({
-  middleware: ['auth', 'administrators-only'],
+  middleware: ['auth', 'administrators-only', 'tenant-required'],
+  data() {
+    return {
+      menuActive: false,
+    }
+  },
   updated() {
     if (
       this.$store.state.dashboard.error !== null &&
@@ -47,10 +85,18 @@ body {
   font-weight: 300;
   height: 100vh;
   overflow: hidden;
+  overflow-y: scroll;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   background-color: #f2f2f2;
 }
 
-h1 {
+body::-webkit-scrollbar {
+  display: none;
+}
+
+h1,
+h2 {
   font-weight: 400;
 }
 
@@ -62,7 +108,7 @@ p {
   padding: 5px;
 }
 
-.brand {
+.mttx-brand {
   font-size: 28px;
   font-weight: 400;
   color: inherit;
@@ -75,54 +121,149 @@ p {
 main {
   height: 100%;
   margin: 50px 0 0 250px;
+  transition: all 0.2s linear;
+}
+
+main.icons {
+  margin: 50px 0 0 54px;
+}
+
+/* START OF NEW */
+
+.page-head {
+  background: white;
+  padding-left: 5px;
+}
+
+.page-head h1 {
+  padding-left: 15px;
+}
+
+.page-head span {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.page-nav {
+  width: 100%;
+
+  background: white;
+  margin: 0;
+  box-shadow: 0 0 0 2px lightgrey;
+}
+
+.page-nav button {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  padding: 14px 16px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0);
+}
+
+.page-nav button.active {
+  border-bottom: 3px solid #353435;
+}
+
+.page-nav button:hover {
+  border-bottom: 3px solid #616161;
+  transition: 0.1s;
+}
+
+.page-body {
+  padding: 15px;
+  padding-bottom: 81px;
+}
+
+.danger {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.info {
+  color: blue;
+  font-weight: 600;
+}
+
+.safe {
+  color: green;
+  font-weight: 600;
+}
+
+.page-body input {
+  display: block;
+  margin: 10px;
   padding: 5px;
-  overflow-y: scroll;
+  width: 100%;
+  max-width: 300px;
+}
+
+.page-body select {
+  display: block;
+  margin: 10px;
+  padding: 5px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.page-footer {
+  width: 100%;
+  background: #fff;
+  border-top: 3px solid #353435;
+  padding: 10px;
+  position: fixed;
+  bottom: 0;
+}
+
+.page-footer button {
+  background-color: var(--primary-color-accent);
+  border: none;
+  outline: none;
+  color: white;
+  padding: 10px 32px;
+  font-size: 16px;
+  margin: 10px;
+  width: 100px;
+}
+
+.page-footer button.red {
+  background-color: #dc3545;
+}
+
+.page-footer button.red:disabled {
+  background-color: #e35d6a;
 }
 
 .loading {
   margin: 10px;
 }
 
-.filter-panel {
-  margin: 0 auto;
-  width: 100%;
-  border-radius: 10px;
-  background-color: #fff;
-  margin: 5px;
-  padding: 5px;
+.breadcrumb {
+  font-size: 0.7em;
 }
 
-.panel {
-  margin: 0 auto;
-  width: 100%;
-  border-radius: 10px;
-  background-color: #fff;
-  margin: 5px;
-  padding: 5px;
+ul.breadcrumb {
+  margin: 0;
+  padding: 5px 10px;
+  list-style: none;
 }
 
-.panel-head {
-  border-bottom: 1px solid grey;
-
-  font-weight: 700;
+ul.breadcrumb li {
+  display: inline;
+  font-size: 0.9em;
 }
 
-.panel-head svg {
-  vertical-align: middle;
-  margin-right: 7px;
+ul.breadcrumb li + li:before {
+  color: black;
+  content: '/\00a0';
 }
 
-.panel-head h1 {
-  display: inline-block;
-  vertical-align: middle;
-  line-height: normal;
+ul.breadcrumb li a {
+  color: var(--primary-color);
+  text-decoration: none;
 }
 
-.panel-body {
-  padding: 5px;
-}
-
-.subtitley {
-  font-size: 1em;
+ul.breadcrumb li a:hover {
+  color: var(--secondary-color-accent);
+  text-decoration: underline;
 }
 </style>

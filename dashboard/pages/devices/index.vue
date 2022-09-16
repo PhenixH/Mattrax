@@ -1,13 +1,21 @@
 <template>
   <div v-if="loading" class="loading">Loading Devices...</div>
   <div v-else>
-    <h1>Devices</h1>
-    <div class="filter-panel">
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+      </ul>
+      <h1>Devices</h1>
+    </PageHead>
+    <PageNav>
       <button @click="$router.push('/enroll')">Enroll Device</button>
       <input type="text" placeholder="Search..." disabled />
-    </div>
-    <TableView :headings="['Name', 'Owner', 'Model', 'Groups']">
+    </PageNav>
+    <TableView :headings="['', 'Name', 'Owner', 'Model', 'Groups']">
       <tr v-for="device in devices" :key="device.id">
+        <td>
+          <span><DeviceIcon :protocol="device.protocol" width="30" /></span>
+        </td>
         <td>
           <NuxtLink :to="'/devices/' + device.id" exact>{{
             device.name
@@ -56,4 +64,4 @@ export default Vue.extend({
 })
 </script>
 
-<style></style>
+<style scoped></style>

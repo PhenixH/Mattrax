@@ -1,16 +1,38 @@
 <template>
-  <div v-if="loading" class="loading">Loading Settings...</div>
-  <div v-else>
-    <h1>Settings</h1>
-    <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+  <div>
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+      </ul>
+      <h1>Settings</h1>
+    </PageHead>
+    <PageNav>
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-      <button class="w3-bar-item w3-button" @click="navigate('users')">
-        Users
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '/tenant',
+        }"
+        @click="navigate('/tenant')"
+      >
+        Tenant
       </button>
-    </div>
-    <NuxtChild />
+      <button
+        :class="{
+          active: this.$route.path.replace('/settings', '') == '/user',
+        }"
+        @click="navigate('/user')"
+      >
+        User
+      </button>
+    </PageNav>
+    <NuxtChild ref="body" />
   </div>
 </template>
 
@@ -19,17 +41,12 @@ import Vue from 'vue'
 
 export default Vue.extend({
   layout: 'dashboard',
-  data() {
-    return {
-      loading: false,
-    }
-  },
   methods: {
     navigate(pathSuffix: string) {
-      this.$router.push('/settings/' + pathSuffix)
+      this.$router.push('/settings' + pathSuffix)
     },
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>

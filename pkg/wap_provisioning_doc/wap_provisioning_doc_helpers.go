@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+// ROBORenewPeriod is the amount of days before a certificate expires to begin automatic renewal
+const ROBORenewPeriod = 42
+
+// ROBORetryInterval is the amount of days between trying an automatic certificate renewal
+const ROBORetryInterval = 4
+
 // NewProvisioningDoc returns a new empty WAP Provisioning Document
 func NewProvisioningDoc() ProvisioningDoc {
 	return ProvisioningDoc{
@@ -19,7 +25,34 @@ func NewProvisioningDoc() ProvisioningDoc {
 }
 
 // NewCertStore creates a new "CertificateStore" characteristic on the document
-func (doc *ProvisioningDoc) NewCertStore(identityRootCertificate *x509.Certificate, certStore string, clientIssuedCertificateRaw []byte) {
+func (doc *ProvisioningDoc) NewCertStore(identityRootCertificate *x509.Certificate, certStore string, clientIssuedCertificateRaw []byte, renewURL string) {
+	var roboParms = []Parameter{
+		{
+			Name:     "ROBOSupport",
+			Value:    "true",
+			DataType: "boolean",
+		},
+
+		{
+			Name:     "RenewPeriod",
+			Value:    fmt.Sprintf("%v", ROBORenewPeriod),
+			DataType: "integer",
+		},
+		{
+			Name:     "RetryInterval",
+			Value:    fmt.Sprintf("%v", ROBORetryInterval),
+			DataType: "integer",
+		},
+	}
+
+	if renewURL != "" {
+		roboParms = append(roboParms, Parameter{
+			Name:     "ServerURL",
+			Value:    renewURL,
+			DataType: "string",
+		})
+	}
+
 	doc.Characteristic = append(doc.Characteristic, Characteristic{
 		Type: "CertificateStore",
 		Characteristics: []Characteristic{
@@ -76,33 +109,12 @@ func (doc *ProvisioningDoc) NewCertStore(identityRootCertificate *x509.Certifica
 							},
 						},
 					},
-				},
-			},
-			{
-				Type: "My",
-				Characteristics: []Characteristic{
 					{
 						Type: "WSTEP",
 						Characteristics: []Characteristic{
 							{
-								Type: "Renew",
-								Params: []Parameter{
-									{
-										Name:     "ROBOSupport",
-										Value:    "true",
-										DataType: "boolean",
-									},
-									{
-										Name:     "RenewPeriod",
-										Value:    "41",
-										DataType: "integer",
-									},
-									{
-										Name:     "RetryInterval",
-										Value:    "7",
-										DataType: "integer",
-									},
-								},
+								Type:   "Renew",
+								Params: roboParms,
 							},
 						},
 					},
@@ -113,7 +125,7 @@ func (doc *ProvisioningDoc) NewCertStore(identityRootCertificate *x509.Certifica
 }
 
 // NewW7Application creates a new "w7 APPLICATION" characteristic on the document
-func (doc *ProvisioningDoc) NewW7Application(providerID, tenantName, managementServiceURL, certStore, clientSubject string) {
+func (doc *ProvisioningDoc) NewW7Application(providerID, name, managementServiceURL, certStore, clientSubject string) {
 	doc.Characteristic = append(doc.Characteristic, Characteristic{
 		Type: "APPLICATION",
 		Params: []Parameter{
@@ -131,7 +143,7 @@ func (doc *ProvisioningDoc) NewW7Application(providerID, tenantName, managementS
 			},
 			{
 				Name:  "NAME",
-				Value: tenantName,
+				Value: name,
 			},
 			{
 				Name: "BACKCOMPATRETRYDISABLED",
@@ -203,6 +215,19 @@ func (doc *ProvisioningDoc) NewW7Application(providerID, tenantName, managementS
 						Value: "nonce",
 					},
 				},
+			},
+		},
+	})
+}
+
+// NewEmptyApplication creates a new "APPLICATION" characteristic on the document
+func (doc *ProvisioningDoc) NewEmptyApplication(providerID string) {
+	doc.Characteristic = append(doc.Characteristic, Characteristic{
+		Type: "APPLICATION",
+		Params: []Parameter{
+			{
+				Name:  "PROVIDER-ID",
+				Value: providerID,
 			},
 		},
 	})

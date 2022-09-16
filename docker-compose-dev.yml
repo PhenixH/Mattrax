@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: mattrax_db
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mattrax
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+      - type: bind
+        source: ./sql/schema.sql
+        target: /docker-entrypoint-initdb.d/schema.sql
+        read_only: true
+    command:
+      - "postgres"
+      - "-c"
+      - "mattrax.upn = NULL"
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U mattrax_db -d mattrax"
+      interval: 3s
+      timeout: 5s
+      retries: 5
+  # zipkin:
+  #   image: openzipkin/zipkin-slim
+  #   ports:
+  #     - 127.0.0.1:9411:9411
+
+volumes:
+  pgdata: {}

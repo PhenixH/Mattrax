@@ -1,0 +1,52 @@
+{
+  "payloads": {
+    "restrictions": {
+      "display_name": "Basic Restrictions",
+      "fields": {
+        "disable_camera": {
+          "display_name": "Disable Camera",
+          "type": "checkbox"
+        },
+        "disable_bluetooth": {
+          "display_name": "Disable Bluetooth",
+          "type": "checkbox"
+        }
+      }
+    },
+    "wifi": {
+      "display_name": "WiFi",
+      "fields": {
+        "ssid": {
+          "display_name": "SSID",
+          "placeholder": "Acme School WiFi"
+        },
+        "passphrase": {
+          "display_name": "Passphrase",
+          "type": "password",
+          "placeholder": "password"
+        }
+      }
+    },
+    "custom": {
+      "display_name": "Custom",
+      "fields": {
+        "oma-uri": {
+          "display_name": "OMA URI",
+          "placeholder": "./Vendor/MSFT/PolicyManager/Device/Camera/AllowCamera"
+        },
+        "oma-type": {
+            "display_name": "Datatype",
+            "type": "select",
+            "values": {
+                "string": "String",
+                "int": "Integer"
+            }
+        },
+        "oma-value": {
+          "display_name": "OMA Value",
+          "placeholder": "0"
+        }
+      }
+    }
+  }
+}

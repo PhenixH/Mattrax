@@ -16,7 +16,6 @@ type AuthClaims struct {
 	MicrosoftSpecificAuthClaims
 	Subject            string `json:"sub,omitempty"`
 	FullName           string `json:"name,omitempty"`
-	Organisation       string `json:"org,omitempty"`
 	Authenticated      bool   `json:"authed,omitempty"`    // This value is set true once any extra authentication has been completed (such as MFA or forced password change). If false DO NOT USE!
 	AuthenticationOnly bool   `json:"auth_only,omitempty"` // Set true for Windows MDM enrollment. If true DO NOT USE!
 }

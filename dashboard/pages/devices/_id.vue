@@ -1,34 +1,39 @@
 <template>
   <div v-if="loading" class="loading">Loading Device...</div>
   <div v-else>
-    <div class="panel">
-      <div class="panel-head">
-        <h1>
-          <PhoneIcon view-box="0 0 24 24" height="40" width="40" />{{
-            device.name
-          }}
-        </h1>
-      </div>
-      <div>
-        <h2 class="subtitley">{{ device.description }}</h2>
-      </div>
-    </div>
-
-    <div class="w3-bar w3-black">
-      <button class="w3-bar-item w3-button" @click="navigate('')">
+    <PageHead>
+      <ul class="breadcrumb">
+        <li><NuxtLink to="/">Dashboard</NuxtLink></li>
+        <li><NuxtLink to="/devices">Devices</NuxtLink></li>
+      </ul>
+      <h1>
+        <span><DeviceIcon :protocol="device.protocol" width="30" /></span
+        >{{ device.name }}
+      </h1>
+    </PageHead>
+    <PageNav>
+      <button
+        :class="{
+          active:
+            this.$route.path.replace('/devices/' + this.$route.params.id, '') ==
+            '',
+        }"
+        @click="navigate('')"
+      >
         Overview
       </button>
-      <button class="w3-bar-item w3-button" @click="navigate('/info')">
-        Information
-      </button>
-      <button class="w3-bar-item w3-button" @click="navigate('/scope')">
+      <button
+        :class="{
+          active:
+            this.$route.path.replace('/devices/' + this.$route.params.id, '') ==
+            '/scope',
+        }"
+        @click="navigate('/scope')"
+      >
         Scope
       </button>
-      <button class="w3-bar-item w3-button" @click="navigate('/settings')">
-        Settings
-      </button>
-    </div>
-    <NuxtChild />
+    </PageNav>
+    <NuxtChild ref="body" :device="device" />
   </div>
 </template>
 
@@ -56,8 +61,12 @@ export default Vue.extend({
     navigate(pathSuffix: string) {
       this.$router.push('/devices/' + this.$route.params.id + pathSuffix)
     },
+    async delete(): Promise<string> {
+      await this.$store.dispatch('devices/deleteDevice', this.$route.params.id)
+      return '/devices'
+    },
   },
 })
 </script>
 
-<style></style>
+<style scoped></style>
